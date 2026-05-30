@@ -1,2 +1,5 @@
 node_modules/
 rooms-data.json
+questions-data.json
+config.json
+.vscode/
