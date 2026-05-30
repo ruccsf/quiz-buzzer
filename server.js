@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 app.use(express.json({ limit: '1mb' })); // 用于接收 base64 头像
@@ -68,9 +69,17 @@ function deleteAvatarFile(contestantId) {
 }
 
 // 路由：无后缀页面路径 → HTML 文件（禁用缓存）
-app.get(['/host', '/contestant', '/screen', '/player', '/questions'], (req, res) => {
+const htmlDir = path.join(__dirname, 'public');
+
+function sendVersionedHtml(req, res, filePath) {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.sendFile(__dirname + '/public' + req.path + '.html');
+  const html = fs.readFileSync(filePath, 'utf8').replace('{{VERSION}}', config.version || 'v0.5');
+  res.send(html);
+}
+
+app.get('/', (req, res) => sendVersionedHtml(req, res, path.join(htmlDir, 'index.html')));
+app.get(['/host', '/contestant', '/screen', '/player', '/questions'], (req, res) => {
+  sendVersionedHtml(req, res, htmlDir + req.path + '.html');
 });
 
 app.use(express.static('public', {
@@ -152,7 +161,7 @@ function loadRooms() {
 
 // ======== 配置 ========
 const CONFIG_FILE = path.join(__dirname, 'config.json');
-let config = { adminPassword: '1234' };
+let config = { adminPassword: 'bc133f0a895e4cfdf51008b3de167a9e', version: 'v0.5' };
 
 function loadConfig() {
   try {
@@ -769,7 +778,8 @@ io.on('connection', (socket) => {
   // ---- 题库管理（需要密码验证） ----
   function checkPassword(password) {
     const pw = (password || '').trim();
-    return pw === config.adminPassword;
+    const hash = crypto.createHash('md5').update(pw).digest('hex');
+    return hash === config.adminPassword;
   }
 
   function getRoomQuestions(roomCode) {
