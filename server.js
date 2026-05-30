@@ -8,12 +8,19 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// 路由：无后缀页面路径 → HTML 文件
+// 路由：无后缀页面路径 → HTML 文件（禁用缓存）
 app.get(['/host', '/contestant', '/screen', '/player'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(__dirname + '/public' + req.path + '.html');
 });
 
-app.use(express.static('public'));
+app.use(express.static('public', {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  },
+}));
 
 // ======== 持久化存储 ========
 const DATA_FILE = path.join(__dirname, 'rooms-data.json');
