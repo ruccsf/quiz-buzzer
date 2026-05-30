@@ -1,0 +1,22 @@
+{
+  "SRTZ": [
+    {
+      "id": "q_mpsca4o4xhxf",
+      "question": "中国的首都是哪个城市",
+      "answer": "北京",
+      "createdAt": 1780144849444
+    },
+    {
+      "id": "q_mpscgcaewa9f",
+      "question": "世界上最长的河流是哪条？",
+      "answer": "尼罗河",
+      "createdAt": 1780145139254
+    },
+    {
+      "id": "q_mpscgvuigbf1",
+      "question": "数字化转型的最终目标是什么？",
+      "answer": "打造双一流银行",
+      "createdAt": 1780145164602
+    }
+  ]
+}
