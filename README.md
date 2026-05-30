@@ -1,0 +1,214 @@
+# 🎯 电视知识竞赛抢答系统
+
+**主持人控制大屏，选手用手机抢答** — 支持实时抢答、计时、计分，适合电视节目、课堂互动、团建活动。
+
+> 当前版本：**v0.1** | GitHub：[ruccsf/quiz-buzzer](https://github.com/ruccsf/quiz-buzzer)
+
+---
+
+## 📦 快速开始（3 步）
+
+### 1. 安装 Node.js
+
+> **已有 Node.js 的跳过此步。**
+
+从官网下载安装：[https://nodejs.org](https://nodejs.org)（选择 LTS 版本）
+
+安装完成后打开终端（cmd / PowerShell）验证：
+
+```bash
+node --version
+npm --version
+```
+
+两条命令都显示版本号即表示成功。
+
+### 2. 下载项目
+
+```bash
+# 方式一：从 GitHub 克隆
+git clone https://github.com/ruccsf/quiz-buzzer.git
+cd quiz-buzzer
+
+# 方式二：直接下载 ZIP
+# 打开 https://github.com/ruccsf/quiz-buzzer → Code → Download ZIP → 解压
+```
+
+### 3. 安装依赖并启动
+
+```bash
+# 安装依赖（只需执行一次）
+npm install
+
+# 启动服务
+npm start
+```
+
+终端显示以下内容即启动成功：
+
+```
+🎯 抢答系统已启动！
+   本地访问: http://localhost:3000
+   局域网访问: http://<本机IP>:3000
+   数据文件: rooms-data.json
+   按 Ctrl+C 停止
+```
+
+> **Windows 用户**也可以直接双击 `start.bat` 一键启动。
+
+---
+
+## 🚀 使用指南
+
+### 主持人 — 创建房间
+
+1. 打开 **http://localhost:3000/host**
+2. 输入称呼（如"主持人小张"），点击 **创建房间**
+3. 自动进入大屏仪表盘，右上角显示 **4 位房间号**
+4. 告诉选手房间号，等待他们加入
+
+![主持人页面流程](https://img.shields.io/badge/页面-/host-blue)
+
+### 选手 — 加入抢答
+
+1. 手机上打开 **http://<本机IP>:3000**（同一 Wi-Fi 局域网）
+2. 输入房间号 + 昵称，点击 **加入房间**
+3. 等待主持人开始抢答，出现红色按钮后点击即可
+
+![选手页面流程](https://img.shields.io/badge/页面-/contestant-green)
+
+### 游戏流程
+
+```
+主持人出题 → 点击"开始抢答" → 倒计时开始
+                            ↓
+               选手手机点击红色按钮抢答
+                            ↓
+       主持人判定 → ✅ 正确(+10分) / ❌ 错误(-5分)
+                            ↓
+                     ⏭️ 下一题 → 循环
+```
+
+### 主持人控制面板
+
+| 功能 | 按钮 | 说明 |
+|------|------|------|
+| 开始抢答 | 🚀 开始抢答 | 启动倒计时，选手可抢答 |
+| 倒计时预设 | 5s / 10s / 15s / 20s / 30s | 点击切换倒计时时长 |
+| 判对 | ✅ 正确 (+10) | 抢答者回答正确，加 10 分 |
+| 判错 | ❌ 错误 (-5) | 抢答者回答错误，减 5 分 |
+| 下一题 | ⏭️ 下一题 | 重置状态，开始新一题 |
+| 手动调分 | +5 / +10 / −5 | 直接调整任意选手分数 |
+| 移除选手 | ✕ | 将选手从房间移除 |
+
+---
+
+## 🌐 局域网多设备使用
+
+1. 电脑启动服务
+2. 查电脑的局域网 IP：
+
+```bash
+# Windows
+ipconfig | findstr "IPv4"
+
+# Mac / Linux
+ipconfig getifaddr en0   # Mac
+hostname -I              # Linux
+```
+
+3. **主持人**：电脑打开 `http://localhost:3000/host`（投屏到电视）
+
+4. **选手**：手机连接同一 Wi-Fi，访问 `http://<电脑IP>:3000`
+
+> 示例：电脑 IP 为 `192.168.50.145`，则选手访问 `http://192.168.50.145:3000`
+
+---
+
+## 💾 数据持久化
+
+所有房间数据自动保存到项目目录下的 `rooms-data.json` 文件中，包括：
+
+- 房间号和主持人名称
+- 选手名称、分数、颜色
+- 已完成的轮次和抢答历史
+
+**服务器重启后选手可重新接入考场**：
+
+1. 再次启动服务（数据自动恢复）
+2. 主持人打开 `/host`，点击"已有房间"列表中对应的房间
+3. 选手打开选手页面，输入房间号 + 原昵称，自动恢复身份和分数
+
+---
+
+## ⚙️ 高级配置
+
+### 修改端口号
+
+```bash
+# 启动时指定端口
+PORT=8080 npm start
+
+# Windows PowerShell
+$env:PORT=8080; npm start
+```
+
+### 内网穿透（外网访问）
+
+使用 [ngrok](https://ngrok.com) 或 frp 将本地服务暴露到外网：
+
+```bash
+ngrok http 3000
+```
+
+生成的外网 URL 发给选手即可远程加入。
+
+---
+
+## 📁 项目结构
+
+```
+quiz-buzzer/
+├── server.js              # 服务端（Express + Socket.IO）
+├── package.json           # 项目配置
+├── start.bat              # Windows 一键启动
+├── rooms-data.json        # 房间数据持久化（自动生成）
+├── README.md              # 使用文档 ← 你现在看的
+└── public/
+    ├── index.html         # 选手加入页面（首页）
+    ├── host.html          # 主持人/大屏页面
+    ├── contestant.html    # 选手抢答页面
+    ├── css/style.css      # 全局样式
+    └── js/socket-client.js # Socket.IO 客户端
+```
+
+---
+
+## ⚡ 常见问题
+
+**Q：选手页面显示"连接中..."不动？**
+> 确认手机和电脑在 **同一 Wi-Fi 网络**，并且访问的是电脑的局域网 IP（不是 localhost）。
+
+**Q：主持人页面创建房间没反应？**
+> 打开浏览器开发者工具（F12）→ Console，看是否有 JS 报错。检查 `node server.js` 是否正常运行。
+
+**Q：选手加入后 host 不显示？**
+> 选手的页面跳转（首页→选手页）会自动触发重连，可能延迟 1-2 秒。刷新选手页面即可。
+
+**Q：服务器重启后房间还在吗？**
+> 房间数据保存在 `rooms-data.json`，重启后自动加载。主持人去 `/host` 查看"已有房间"列表即可重新进入。
+
+**Q：最多支持多少选手？**
+> 最多 **8 人**同时加入一个房间，可根据需要调整服务端代码中的限制。
+
+---
+
+## 📜 技术栈
+
+| 层 | 技术 |
+|------|------|
+| 后端 | Node.js + Express + Socket.IO |
+| 前端 | 纯 HTML / CSS / JavaScript |
+| 实时通信 | WebSocket（Socket.IO） |
+| 持久化 | JSON 文件存储 |
+| 部署 | 单进程，无需数据库 |
