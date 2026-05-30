@@ -6,7 +6,9 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+});
 
 // 路由：无后缀页面路径 → HTML 文件（禁用缓存）
 app.get(['/host', '/contestant', '/screen', '/player'], (req, res) => {
