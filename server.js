@@ -112,6 +112,7 @@ function createRoom(gameName) {
     timerInterval: null,
     timerRemaining: 0,
     currentBuzzer: null,
+    currentQuestion: '',
     buzzHistory: [],
     round: 0,
   };
@@ -225,6 +226,7 @@ io.on('connection', (socket) => {
         gameName: room.gameName,
         contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color })),
         state: room.state,
+        currentQuestion: room.currentQuestion,
       }});
     } catch (err) {
       callback?.({ ok: false, error: err.message });
@@ -260,6 +262,7 @@ io.on('connection', (socket) => {
             gameName: room.gameName,
             contestants: room.contestants,
             state: room.state,
+            currentQuestion: room.currentQuestion,
           },
         });
         return;
@@ -295,6 +298,7 @@ io.on('connection', (socket) => {
           gameName: room.gameName,
           contestants: room.contestants,
           state: room.state,
+          currentQuestion: room.currentQuestion,
         },
       });
     } catch (err) {
@@ -555,6 +559,7 @@ io.on('connection', (socket) => {
         timer: room.timer,
         currentBuzzer: room.currentBuzzer,
         round: room.round,
+        currentQuestion: room.currentQuestion,
       },
     });
   });
@@ -580,8 +585,24 @@ io.on('connection', (socket) => {
           timerRemaining: room.timerRemaining,
           currentBuzzer: room.currentBuzzer,
           round: room.round,
+          currentQuestion: room.currentQuestion,
         },
       });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 主持人发布题目 ----
+  socket.on('publish-question', ({ roomCode, question }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      if (socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '非主持人' });
+
+      room.currentQuestion = question || '';
+      io.to(roomCode).emit('question-update', { question: room.currentQuestion });
+      callback?.({ ok: true });
     } catch (err) {
       callback?.({ ok: false, error: err.message });
     }

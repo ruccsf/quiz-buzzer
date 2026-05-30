@@ -118,6 +118,24 @@
     .timer-big.warning { color: var(--accent-red); animation: pulse 0.5s infinite; }
     .timer-big.idle { color: var(--text-secondary); }
 
+    /* ---- 大屏题目展示 ---- */
+    .screen-question {
+      flex-shrink: 0;
+      text-align: center;
+      padding: 12px 24px;
+      margin: 4px 0 8px;
+      background: rgba(74, 158, 255, 0.1);
+      border: 1px solid rgba(74, 158, 255, 0.2);
+      border-radius: var(--radius-sm);
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--accent-yellow);
+      line-height: 1.4;
+      word-break: break-word;
+      animation: fadeIn 0.5s ease;
+    }
+    .screen-question.hidden { display: none; }
+
     /* ---- 选手卡片网格 ---- */
     .screen-cards {
       display: flex;
@@ -343,6 +361,8 @@
       <div class="timer-big idle" id="timerBig">--</div>
     </div>
 
+    <div class="screen-question hidden" id="screenQuestion"></div>
+
     <div class="screen-cards" id="cardsContainer">
       <div class="empty-hint">暂无选手加入</div>
     </div>
@@ -415,6 +435,12 @@
         currentState = room.state || 'idle';
         currentBuzzer = room.currentBuzzer;
 
+        // 显示已有题目
+        if (room.currentQuestion && room.currentQuestion.trim()) {
+          $('#screenQuestion').textContent = '📝 ' + room.currentQuestion;
+          $('#screenQuestion').classList.remove('hidden');
+        }
+
         renderCards();
         renderRanking();
         updateStatusUI(currentState, currentBuzzer, room.timerRemaining);
@@ -427,6 +453,16 @@
     });
 
     // ======== Socket 事件 ========
+
+    socket.on('question-update', ({ question }) => {
+      const el = $('#screenQuestion');
+      if (question && question.trim()) {
+        el.textContent = '📝 ' + question;
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    });
 
     socket.on('buzzer-state', ({ state, winner, remaining }) => {
       currentState = state;
@@ -515,6 +551,13 @@
             currentBuzzer = room.currentBuzzer;
             currentRound = room.round || 0;
             $('#roundLabel').textContent = '第 ' + currentRound + ' 题';
+            // 恢复题目显示
+            if (room.currentQuestion && room.currentQuestion.trim()) {
+              $('#screenQuestion').textContent = '📝 ' + room.currentQuestion;
+              $('#screenQuestion').classList.remove('hidden');
+            } else {
+              $('#screenQuestion').classList.add('hidden');
+            }
             renderCards();
             renderRanking();
             updateStatusUI(currentState, currentBuzzer, room.timerRemaining);

@@ -80,6 +80,25 @@
       gap: 10px;
     }
 
+    /* ---- 题目展示 ---- */
+    .question-card {
+      width: 100%;
+      max-width: 500px;
+      background: rgba(74, 158, 255, 0.1);
+      border: 1px solid rgba(74, 158, 255, 0.25);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-yellow);
+      line-height: 1.5;
+      text-align: center;
+      word-break: break-word;
+      animation: fadeIn 0.4s ease;
+      flex-shrink: 0;
+    }
+    .question-card.hidden { display: none; }
+
     /* ---- 状态提示 ---- */
     .status-hint {
       font-size: 16px;
@@ -216,6 +235,7 @@
 
     <!-- 中间弹性区域：倒计时 + 提示 + 按钮 垂直居中 -->
     <div class="buzz-area">
+      <div class="question-card hidden" id="questionCard"></div>
       <div class="timer-badge hidden" id="timerBadge">--</div>
       <div class="status-hint" id="statusHint">连接中...</div>
       <button class="buzz-btn" id="buzzBtn">抢答</button>
@@ -257,6 +277,12 @@
         }
         $('#hostInfo').textContent = `🏆 ${res.room.gameName}`;
         updateUIState(res.room.state, res.room.currentBuzzer);
+        // 显示已发布的题目
+        const q = res.room.currentQuestion;
+        if (q && q.trim()) {
+          $('#questionCard').textContent = '📝 ' + q;
+          $('#questionCard').classList.remove('hidden');
+        }
       } else {
         showToast(res.error || '连接失败，请重新扫码加入');
       }
@@ -275,6 +301,12 @@
             }
             $('#hostInfo').textContent = `🏆 ${res.room.gameName}`;
             updateUIState(res.room.state, res.room.currentBuzzer);
+        // 显示已发布的题目
+        const q = res.room.currentQuestion;
+        if (q && q.trim()) {
+          $('#questionCard').textContent = '📝 ' + q;
+          $('#questionCard').classList.remove('hidden');
+        }
             showToast('🔗 已重新连接', 'success');
           }
         });
@@ -282,6 +314,16 @@
     });
 
     // ======== Socket 事件 ========
+
+    socket.on('question-update', ({ question }) => {
+      const card = $('#questionCard');
+      if (question && question.trim()) {
+        card.textContent = '📝 ' + question;
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
 
     socket.on('buzzer-state', ({ state, winner, remaining }) => {
       updateUIState(state, winner, remaining);
