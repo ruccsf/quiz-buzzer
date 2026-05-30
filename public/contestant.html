@@ -237,7 +237,7 @@
     <div class="contestant-header">
       <div class="left-group">
         <a class="back-link" href="/player">← 返回</a>
-        <div class="room-badge" id="roomBadge">——</div>
+        <div class="room-badge" id="roomBadge" style="display:flex;align-items:center;gap:6px;">—— <button class="copy-btn" onclick="var t=document.getElementById('roomBadge').textContent.replace('房间: ','').replace('📋','').trim();copyText(t,this)" style="background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:1px 6px;">📋</button></div>
       </div>
       <div class="contestant-name-display" id="nameDisplay">——</div>
     </div>

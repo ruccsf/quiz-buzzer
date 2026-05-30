@@ -18,7 +18,10 @@
     <div class="card" style="animation: slideUp 0.5s ease; max-width: 420px;">
       <div class="form-group">
         <label>房间号</label>
-        <input class="form-input code-input" id="roomCode" type="text" placeholder="XXXX" maxlength="4" autocomplete="off">
+        <div class="input-group">
+          <input class="form-input code-input" id="roomCode" type="text" placeholder="XXXX" maxlength="4" autocomplete="off">
+          <button class="paste-btn" onclick="pasteText('roomCode',this)" title="从剪贴板粘贴">📥</button>
+        </div>
       </div>
       <div class="form-group">
         <label>你的昵称</label>

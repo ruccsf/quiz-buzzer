@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>题库管理</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: linear-gradient(135deg, #0a0e27 0%, #141838 50%, #1a1040 100%); }
+    .q-container {
+      width: 100%;
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ---- Phase 1: 登录 ---- */
+    .q-login {
+      width: 100%;
+      max-width: 420px;
+      margin: auto;
+      animation: fadeIn 0.5s ease;
+    }
+    .q-login .card { padding: 40px; text-align: center; }
+    .q-login .icon { font-size: 48px; margin-bottom: 12px; }
+    .q-login h2 { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+
+    /* ---- Phase 2: 题库管理 ---- */
+    .q-manager {
+      width: 100%;
+      max-width: 860px;
+      animation: fadeIn 0.5s ease;
+    }
+    .q-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .q-header h2 { font-size: 24px; font-weight: 700; }
+    .q-header .q-meta { color: var(--text-secondary); font-size: 14px; }
+
+    .q-section {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .q-section .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+    .q-section .section-title .hint {
+      font-weight: 400;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-left: 8px;
+    }
+    .q-section .q-input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .q-section .q-input-row .form-input { flex: 1; }
+    .q-section .q-input-row .btn { width: auto; flex-shrink: 0; }
+    .q-section .csv-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg-primary);
+      border: 2px solid transparent;
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: monospace;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+    }
+    .q-section .csv-textarea:focus { border-color: var(--accent-blue); }
+
+    /* ---- 题目列表 ---- */
+    .q-table-wrap {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .q-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .q-table th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+    .q-table td {
+      padding: 10px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: middle;
+    }
+    .q-table tr:hover td { background: rgba(74,158,255,0.05); }
+    .q-table .q-col-num { width: 40px; color: var(--text-secondary); text-align: center; }
+    .q-table .q-col-q { }
+    .q-table .q-col-a { width: 120px; color: var(--accent-green); font-weight: 600; }
+    .q-table .q-col-actions { width: 120px; text-align: right; white-space: nowrap; }
+    .q-table .btn-sm { padding: 4px 12px; font-size: 12px; width: auto; margin-left: 4px; }
+    .q-table .btn-use { background: rgba(74,158,255,0.15); color: var(--accent-blue); border: none; border-radius: 6px; cursor: pointer; }
+    .q-table .btn-use:hover { background: rgba(74,158,255,0.3); }
+    .q-table .btn-del { background: rgba(255,23,68,0.1); color: var(--accent-red); border: none; border-radius: 6px; cursor: pointer; }
+    .q-table .btn-del:hover { background: rgba(255,23,68,0.25); }
+
+    .q-empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+      font-size: 15px;
+    }
+    .q-empty .emoji { font-size: 40px; margin-bottom: 8px; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="q-container">
+    <!-- ===== Phase 1: 密码验证 ===== -->
+    <div class="q-login" id="loginView">
+      <div class="card">
+        <div class="icon">📚</div>
+        <h2>题库管理</h2>
+        <div class="form-group">
+          <label>房间号</label>
+          <div class="input-group">
+            <input class="form-input code-input" id="roomCodeInput" type="text" placeholder="XXXX" maxlength="4" autocomplete="off">
+            <button class="paste-btn" onclick="pasteText('roomCodeInput',this)" title="从剪贴板粘贴">📥</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>管理密码</label>
+          <input class="form-input" id="passwordInput" type="password" placeholder="输入管理密码" autocomplete="off">
+        </div>
+        <button class="btn btn-primary" id="loginBtn">🔓 进入题库</button>
+        <p style="color:var(--text-secondary);font-size:12px;margin-top:16px;">提示：密码在 config.json 中设置</p>
+      </div>
+      <div style="margin-top:16px;font-size:13px;">
+        <a href="/" style="color:var(--accent-blue);text-decoration:none;">← 返回首页</a>
+      </div>
+    </div>
+
+    <!-- ===== Phase 2: 题库管理 ===== -->
+    <div class="q-manager hidden" id="managerView">
+      <div class="q-header">
+        <div>
+          <h2>📚 题库管理</h2>
+          <div class="q-meta">房间: <span id="qRoomLabel">----</span> <button class="copy-btn" onclick="copyText(document.getElementById('qRoomLabel').textContent,this)" style="background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:var(--text-secondary);font-size:12px;cursor:pointer;padding:1px 6px;">📋</button> · 共 <span id="qCountLabel">0</span> 题</div>
+        </div>
+        <div style="font-size:13px;">
+          <a href="/" style="color:var(--accent-blue);text-decoration:none;">← 返回首页</a>
+        </div>
+      </div>
+
+      <!-- 添加题目 -->
+      <div class="q-section">
+        <div class="section-title">✏️ 添加题目</div>
+        <div class="q-input-row">
+          <input class="form-input" id="addQInput" type="text" placeholder="输入题目文本..." style="flex:2;">
+          <input class="form-input" id="addAInput" type="text" placeholder="正确答案..." style="flex:1;">
+          <button class="btn btn-primary" id="addBtn" style="width:auto;padding:8px 20px;">+ 添加</button>
+        </div>
+      </div>
+
+      <!-- CSV 导入 -->
+      <div class="q-section">
+        <div class="section-title">📤 CSV 批量导入 <span class="hint">格式：题目,答案（每行一题，半角逗号）</span></div>
+        <textarea class="csv-textarea" id="csvInput" placeholder="中国的首都是哪里？,北京&#10;1+1等于几？,2&#10;世界上最长的河流是？,尼罗河"></textarea>
+        <div style="margin-top:8px;">
+          <button class="btn btn-primary" id="importBtn" style="width:auto;padding:8px 24px;">📤 导入 CSV</button>
+        </div>
+      </div>
+
+      <!-- 题目列表 -->
+      <div class="q-table-wrap">
+        <table class="q-table">
+          <thead>
+            <tr>
+              <th class="q-col-num">#</th>
+              <th class="q-col-q">题目</th>
+              <th class="q-col-a">答案</th>
+              <th class="q-col-actions">操作</th>
+            </tr>
+          </thead>
+          <tbody id="questionListBody"></tbody>
+        </table>
+        <div class="q-empty" id="emptyHint">
+          <div class="emoji">📭</div>
+          <div>暂无题目，请添加或导入</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/socket-client.js"></script>
+  <script>
+    // ======== 状态 ========
+    let roomCode = '';
+    let password = '';
+    let questions = [];
+
+    // 从 sessionStorage 恢复
+    roomCode = sessionStorage.getItem('q_room') || '';
+    password = sessionStorage.getItem('q_pwd') || '';
+
+    // ======== 登录 ========
+    const codeInput = $('#roomCodeInput');
+    const pwdInput = $('#passwordInput');
+    if (roomCode) codeInput.value = roomCode;
+
+    codeInput.addEventListener('input', () => {
+      codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+    codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') pwdInput.focus(); });
+    pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#loginBtn').click(); });
+
+    // 自动登录（session 恢复时）
+    if (roomCode && password) tryAutoLogin();
+
+    $('#loginBtn').addEventListener('click', () => {
+      roomCode = codeInput.value.trim();
+      password = pwdInput.value.trim();
+      if (!roomCode || roomCode.length !== 4) return showToast('请输入4位房间号');
+      if (!password) return showToast('请输入管理密码');
+      tryAutoLogin();
+    });
+
+    function tryAutoLogin() {
+      $('#loginBtn').disabled = true;
+      $('#loginBtn').textContent = '验证中...';
+
+      socket.emit('get-questions', { roomCode, password }, (res) => {
+        $('#loginBtn').disabled = false;
+        $('#loginBtn').textContent = '🔓 进入题库';
+
+        if (!res.ok) return showToast(res.error);
+
+        // 登录成功
+        sessionStorage.setItem('q_room', roomCode);
+        sessionStorage.setItem('q_pwd', password);
+        questions = res.questions || [];
+        enterManager();
+      });
+    }
+
+    // ======== 题库管理 ========
+    function enterManager() {
+      $('#loginView').classList.add('hidden');
+      $('#managerView').classList.remove('hidden');
+      $('#qRoomLabel').textContent = roomCode;
+      renderQuestions();
+    }
+
+    function renderQuestions() {
+      const tbody = $('#questionListBody');
+      const empty = $('#emptyHint');
+      $('#qCountLabel').textContent = questions.length;
+
+      if (!questions || questions.length === 0) {
+        tbody.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      tbody.innerHTML = questions.map((q, i) => `
+        <tr>
+          <td class="q-col-num">${i + 1}</td>
+          <td class="q-col-q">${escapeHtml(q.question)}</td>
+          <td class="q-col-a">${escapeHtml(q.answer)}</td>
+          <td class="q-col-actions">
+            <button class="btn-sm btn-use" onclick="useQuestion('${q.id}')">📋 选用</button>
+            <button class="btn-sm btn-del" onclick="deleteQuestion('${q.id}')">✕</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function escapeHtml(text) {
+      const d = document.createElement('div');
+      d.textContent = text || '';
+      return d.innerHTML;
+    }
+
+    // ---- 添加单题 ----
+    $('#addBtn').addEventListener('click', () => {
+      const question = $('#addQInput').value.trim();
+      const answer = $('#addAInput').value.trim();
+      if (!question) return showToast('请输入题目');
+
+      socket.emit('add-question', { roomCode, password, question, answer }, (res) => {
+        if (!res.ok) return showToast(res.error);
+        questions = res.questions;
+        $('#addQInput').value = '';
+        $('#addAInput').value = '';
+        renderQuestions();
+        showToast('✅ 已添加', 'success');
+      });
+    });
+
+    // ---- CSV 导入 ----
+    $('#importBtn').addEventListener('click', () => {
+      const csv = $('#csvInput').value.trim();
+      if (!csv) return showToast('请输入 CSV 数据');
+
+      socket.emit('import-csv', { roomCode, password, csv }, (res) => {
+        if (!res.ok) return showToast(res.error);
+        questions = res.questions;
+        $('#csvInput').value = '';
+        renderQuestions();
+        showToast(`✅ 成功导入 ${res.imported} 题，共 ${res.total} 题`, 'success');
+      });
+    });
+
+    // ---- 选用题目 ----
+    function useQuestion(id) {
+      const q = questions.find(item => item.id === id);
+      if (!q) return;
+      // 存入 sessionStorage
+      sessionStorage.setItem('use_question', q.question);
+      sessionStorage.setItem('use_answer', q.answer);
+      // 跳转到 host 页面
+      window.location.href = '/host?room=' + roomCode;
+    }
+
+    // ---- 删除题目 ----
+    function deleteQuestion(id) {
+      if (!confirm('确定删除此题吗？')) return;
+      socket.emit('delete-question', { roomCode, password, id }, (res) => {
+        if (!res.ok) return showToast(res.error);
+        questions = res.questions;
+        renderQuestions();
+        showToast('已删除', 'success');
+      });
+    }
+  </script>
+</body>
+</html>

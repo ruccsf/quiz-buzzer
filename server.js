@@ -11,7 +11,7 @@ const io = new Server(server, {
 });
 
 // 路由：无后缀页面路径 → HTML 文件（禁用缓存）
-app.get(['/host', '/contestant', '/screen', '/player'], (req, res) => {
+app.get(['/host', '/contestant', '/screen', '/player', '/questions'], (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(__dirname + '/public' + req.path + '.html');
 });
@@ -56,6 +56,7 @@ function saveRooms() {
           currentBuzzer: null,
           buzzHistory: room.buzzHistory,
           round: room.round,
+          usedQuestionIds: room.usedQuestionIds || [],
         };
       }
       fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
@@ -77,6 +78,7 @@ function loadRooms() {
         gameName: saved.gameName || saved.hostName || '知识竞赛', // 兼容旧版 hostName 字段
         hostSocketId: null,
         timerInterval: null,
+        usedQuestionIds: saved.usedQuestionIds || [],
         // 确保 contestants 的 socketId 是 null
         contestants: (saved.contestants || []).map(c => ({ ...c, socketId: null })),
       };
@@ -88,6 +90,58 @@ function loadRooms() {
   } catch (err) {
     console.error('加载房间数据失败:', err.message);
   }
+}
+
+// ======== 配置 ========
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+let config = { adminPassword: '1234' };
+
+function loadConfig() {
+  try {
+    if (!fs.existsSync(CONFIG_FILE)) {
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+      return;
+    }
+    const raw = fs.readFileSync(CONFIG_FILE, 'utf8');
+    config = { ...config, ...JSON.parse(raw) };
+  } catch (err) {
+    console.error('加载配置失败:', err.message);
+  }
+}
+loadConfig();
+
+// ======== 题库持久化 ========
+const QUESTIONS_FILE = path.join(__dirname, 'questions-data.json');
+let questionSavePending = false;
+let questionBank = {};
+
+function saveQuestions() {
+  if (questionSavePending) return;
+  questionSavePending = true;
+  setImmediate(() => {
+    questionSavePending = false;
+    try {
+      fs.writeFileSync(QUESTIONS_FILE, JSON.stringify(questionBank, null, 2), 'utf8');
+    } catch (err) {
+      console.error('保存题库失败:', err.message);
+    }
+  });
+}
+
+function loadQuestions() {
+  try {
+    if (!fs.existsSync(QUESTIONS_FILE)) return;
+    const raw = fs.readFileSync(QUESTIONS_FILE, 'utf8');
+    questionBank = JSON.parse(raw);
+    const count = Object.values(questionBank).reduce((sum, arr) => sum + arr.length, 0);
+    if (count > 0) console.log(`📚 已恢复 ${count} 道题库数据`);
+  } catch (err) {
+    console.error('加载题库失败:', err.message);
+  }
+}
+
+function genQId() {
+  return 'q_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
 // ======== 游戏状态 ========
@@ -123,6 +177,8 @@ function createRoom(gameName) {
     currentBuzzer: null,
     currentQuestion: '',
     currentAnswer: '',
+    currentQuestionId: null,
+    usedQuestionIds: [],
     buzzHistory: [],
     round: 0,
   };
@@ -625,7 +681,7 @@ io.on('connection', (socket) => {
   });
 
   // ---- 主持人发布题目 ----
-  socket.on('publish-question', ({ roomCode, question, answer }, callback) => {
+  socket.on('publish-question', ({ roomCode, question, answer, questionId }, callback) => {
     try {
       const room = getRoom(roomCode);
       if (!room) return callback?.({ ok: false, error: '房间不存在' });
@@ -633,9 +689,97 @@ io.on('connection', (socket) => {
 
       room.currentQuestion = question || '';
       room.currentAnswer = answer || '';
+      room.currentQuestionId = questionId || null;
+      // 如果是从题库选用的，记录已出题 ID
+      if (questionId && !room.usedQuestionIds.includes(questionId)) {
+        room.usedQuestionIds.push(questionId);
+        saveRooms();
+      }
       // 只广播题目，答案保密——判分时随 judge-result 公布
       io.to(roomCode).emit('question-update', { question: room.currentQuestion });
       callback?.({ ok: true, answer: room.currentAnswer });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 题库管理（需要密码验证） ----
+  function checkPassword(password) {
+    const pw = (password || '').trim();
+    return pw === config.adminPassword;
+  }
+
+  function getRoomQuestions(roomCode) {
+    if (!questionBank[roomCode]) questionBank[roomCode] = [];
+    return questionBank[roomCode];
+  }
+
+  socket.on('get-questions', ({ roomCode, password }, callback) => {
+    try {
+      if (!checkPassword(password)) return callback?.({ ok: false, error: '密码错误' });
+      const questions = getRoomQuestions(roomCode);
+      const room = getRoom(roomCode);
+      callback?.({ ok: true, questions, usedQuestionIds: room?.usedQuestionIds || [] });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  socket.on('add-question', ({ roomCode, password, question, answer }, callback) => {
+    try {
+      if (!checkPassword(password)) return callback?.({ ok: false, error: '密码错误' });
+      const list = getRoomQuestions(roomCode);
+      list.push({ id: genQId(), question, answer, createdAt: Date.now() });
+      saveQuestions();
+      callback?.({ ok: true, questions: list });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  socket.on('update-question', ({ roomCode, password, id, question, answer }, callback) => {
+    try {
+      if (!checkPassword(password)) return callback?.({ ok: false, error: '密码错误' });
+      const list = getRoomQuestions(roomCode);
+      const q = list.find(item => item.id === id);
+      if (!q) return callback?.({ ok: false, error: '题目不存在' });
+      q.question = question;
+      q.answer = answer;
+      saveQuestions();
+      callback?.({ ok: true, questions: list });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  socket.on('delete-question', ({ roomCode, password, id }, callback) => {
+    try {
+      if (!checkPassword(password)) return callback?.({ ok: false, error: '密码错误' });
+      const list = getRoomQuestions(roomCode);
+      const idx = list.findIndex(item => item.id === id);
+      if (idx === -1) return callback?.({ ok: false, error: '题目不存在' });
+      list.splice(idx, 1);
+      saveQuestions();
+      callback?.({ ok: true, questions: list });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+  socket.on('import-csv', ({ roomCode, password, csv }, callback) => {
+    try {
+      if (!checkPassword(password)) return callback?.({ ok: false, error: '密码错误' });
+      const list = getRoomQuestions(roomCode);
+      const lines = (csv || '').split('\n').filter(l => l.trim());
+      let imported = 0;
+      for (const line of lines) {
+        const parts = line.split(',').map(s => s.trim());
+        if (parts.length >= 2 && parts[0]) {
+          list.push({ id: genQId(), question: parts[0], answer: parts[1] || '', createdAt: Date.now() });
+          imported++;
+        }
+      }
+      if (imported > 0) saveQuestions();
+      callback?.({ ok: true, imported, total: list.length, questions: list });
     } catch (err) {
       callback?.({ ok: false, error: err.message });
     }
@@ -684,6 +828,7 @@ io.on('connection', (socket) => {
 
 // ======== 启动 ========
 loadRooms();
+loadQuestions();
 cleanupOldRooms();
 
 const PORT = process.env.PORT || 3000;

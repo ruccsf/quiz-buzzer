@@ -82,6 +82,19 @@
       padding: 6px 16px;
       border-radius: 8px;
     }
+    .copy-btn {
+      background: rgba(255,255,255,0.08);
+      border: none;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 1px 6px;
+      transition: all 0.2s;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.15); color: var(--text-primary); }
 
     /* ---- 中央状态区 ---- */
     .screen-status {
@@ -360,7 +373,10 @@
       </div>
       <div class="form-group">
         <label>房间号</label>
-        <input class="form-input code-input" id="roomCodeInput" type="text" placeholder="XXXX" maxlength="4" autocomplete="off">
+        <div class="input-group">
+          <input class="form-input code-input" id="roomCodeInput" type="text" placeholder="XXXX" maxlength="4" autocomplete="off">
+          <button class="paste-btn" onclick="pasteText('roomCodeInput',this)" title="从剪贴板粘贴">📥</button>
+        </div>
       </div>
       <button class="btn btn-primary" id="connectBtn">📺 连接大屏</button>
       <div class="join-tip">
@@ -378,7 +394,7 @@
     <div class="screen-header">
       <div class="game-title" id="gameTitle">🏆 知识竞赛</div>
       <div class="meta-info">
-        <span class="room-code" id="roomCodeLabel">房间: ----</span>
+        <span class="room-code" id="roomCodeLabel">房间: ----</span><button class="copy-btn" onclick="copyText(document.getElementById('roomCodeLabel').textContent.replace('房间: ',''), this)" title="复制房间号">📋</button>
         <span class="round-info" id="roundLabel">第 0 题</span>
       </div>
     </div>

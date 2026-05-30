@@ -111,6 +111,36 @@ body {
   font-weight: 700;
 }
 
+/* 输入框旁粘贴按钮 */
+.input-group {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.input-group .form-input { flex: 1; }
+.input-group .paste-btn {
+  width: 48px;
+  min-width: 48px;
+  background: var(--bg-primary);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.input-group .paste-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.15);
+}
+.input-group .paste-btn:active {
+  transform: scale(0.95);
+}
+
 /* ======== 按钮 ======== */
 .btn {
   display: inline-flex;

@@ -62,7 +62,25 @@
       font-weight: 600;
       letter-spacing: 2px;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 2px 8px;
+      line-height: 1;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.15); color: var(--text-primary); }
 
     /* ---- 抢答状态 ---- */
     .buzzer-status {
@@ -111,6 +129,28 @@
       margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 1px;
+    }
+    .question-section .qs-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .question-section .qs-label-row .qs-label { margin-bottom: 0; }
+    .question-section .qs-label-row .bank-label-btn {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: rgba(255,255,255,0.06);
+      border: none;
+      border-radius: 6px;
+      padding: 2px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+    .question-section .qs-label-row .bank-label-btn:hover {
+      background: rgba(74,158,255,0.15);
+      color: var(--accent-blue);
     }
     .question-section .qs-input {
       width: 100%;
@@ -168,6 +208,100 @@
       color: var(--accent-green);
     }
     .question-section .qs-answer-preview.hidden { display: none; }
+
+    /* ---- 题库选取面板 ---- */
+    .question-bank {
+      margin-top: 12px;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,255,255,0.06);
+      overflow: hidden;
+      animation: fadeIn 0.2s ease;
+    }
+    .question-bank.hidden { display: none; }
+    .question-bank .qb-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-weight: 600;
+    }
+    .question-bank .qb-count { font-weight: 400; font-size: 12px; }
+    .question-bank .qb-list {
+      max-height: 220px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    .question-bank .qb-list::-webkit-scrollbar { width: 4px; }
+    .question-bank .qb-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+    .question-bank .qb-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .question-bank .qb-item:last-child { border-bottom: none; }
+    .question-bank .qb-item:hover { background: rgba(74,158,255,0.08); }
+    .question-bank .qb-item.qb-used { opacity: 0.55; }
+    .question-bank .qb-item.qb-used:hover { opacity: 0.8; }
+    .question-bank .qb-item .qb-q {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .question-bank .qb-item .qb-a {
+      font-size: 12px;
+      color: var(--accent-green);
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .question-bank .qb-empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .question-bank .qb-loading {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .question-bank .qb-pwd-row {
+      display: flex;
+      gap: 6px;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .question-bank .qb-pwd-input {
+      flex: 1;
+      padding: 6px 10px;
+      background: var(--bg-primary);
+      border: 2px solid transparent;
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .question-bank .qb-pwd-input:focus {
+      border-color: var(--accent-blue);
+    }
+    .question-bank .qb-pwd-row .btn { width: auto; }
 
     /* ---- 选手列表 ---- */
     .contestants-grid {
@@ -476,7 +610,26 @@
       font-size: 20px;
       font-weight: 700;
       letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
+    .room-list-item .code .copy-btn {
+      font-size: 11px;
+      padding: 0 5px;
+      line-height: 20px;
+      opacity: 0.5;
+    }
+    .room-list-item .code .copy-btn:hover { opacity: 1; }
+    /* 已有房间列表滚动 */
+    #existingRoomList {
+      max-height: 280px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    #existingRoomList::-webkit-scrollbar { width: 4px; }
+    #existingRoomList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
     .room-list-item .host {
       font-size: 13px;
       color: var(--text-secondary);
@@ -550,6 +703,9 @@
       <div style="font-size:14px; color: var(--text-secondary); font-weight:600; margin-bottom:12px;">📂 已有房间（重启服务器后仍在）</div>
       <div id="existingRoomList"></div>
     </div>
+    <div style="margin-top:24px;font-size:13px;text-align:center;">
+      <a href="/" style="color:var(--accent-blue);text-decoration:none;">← 返回首页</a>
+    </div>
   </div>
 
   <!-- ===== 主持人大屏视图 ===== -->
@@ -557,7 +713,7 @@
     <div class="display-area">
       <div class="display-header">
         <h1 id="roomTitle">🏆 知识竞赛</h1>
-        <div class="room-code" id="roomCodeDisplay">——</div>
+        <div class="room-code"><span id="roomCodeDisplay">——</span><button class="copy-btn" id="copyRoomCodeBtn" onclick="copyText(document.getElementById('roomCodeDisplay').textContent.replace('房间: ',''), this)">📋</button></div>
       </div>
 
       <div class="buzzer-status">
@@ -567,7 +723,10 @@
 
       <!-- 题目输入+发布+展示 -->
       <div class="question-section" id="questionSection">
-        <div class="qs-label">📝 当前题目</div>
+        <div class="qs-label-row">
+          <div class="qs-label">📝 当前题目</div>
+          <button class="bank-label-btn" id="bankBtn">📚 题库</button>
+        </div>
         <textarea class="qs-input" id="questionInput" placeholder="输入题目文本..." rows="2"></textarea>
         <div class="qs-label" style="margin-top:8px;">💡 正确答案</div>
         <textarea class="qs-input" id="answerInput" placeholder="输入正确答案（判分后自动公布）..." rows="1" style="min-height:36px;"></textarea>
@@ -577,6 +736,18 @@
         </div>
         <div class="qs-preview empty" id="questionPreview">暂无题目</div>
         <div class="qs-answer-preview hidden" id="answerPreview"></div>
+
+        <!-- 题库选取面板 -->
+        <div class="question-bank hidden" id="questionBank">
+          <div class="qb-header"><span>📚 题库</span><span class="qb-count" id="qbCount">0 题</span></div>
+          <div class="qb-pwd-row" id="qbPwdRow">
+            <input class="qb-pwd-input" id="qbPwdInput" type="password" placeholder="输入管理密码" autocomplete="off">
+            <button class="btn-sm btn-primary" id="qbUnlockBtn" style="padding:4px 12px;font-size:12px;width:auto;">验证</button>
+          </div>
+          <div class="qb-list hidden" id="qbList">
+            <div class="qb-loading">加载中...</div>
+          </div>
+        </div>
       </div>
 
       <div class="contestants-grid" id="contestantsGrid">
@@ -625,6 +796,9 @@
       </div>
 
       <button class="btn btn-outline btn-sm" id="backToRoomsBtn" style="margin-top:8px; font-size:13px;">← 返回房间列表</button>
+      <div style="margin-top:6px;font-size:12px;text-align:center;">
+        <a href="/" style="color:var(--accent-blue);text-decoration:none;">← 返回首页</a>
+      </div>
     </div>
   </div>
 
@@ -681,6 +855,9 @@
           // 设置 URL（不刷新页面）
           history.replaceState(null, '', '/host?room=' + roomCode);
 
+          // 检查是否有从题库选用的题目
+          loadFromQuestionBank();
+
           showToast('🎉 房间 ' + roomCode + ' 已创建！', 'success');
         });
       });
@@ -694,7 +871,7 @@
           list.innerHTML = res.rooms.map(r => `
             <div class="room-list-item" data-code="${r.id}">
               <div class="info-block">
-                <div class="code">${r.id}</div>
+                <div class="code">${r.id}<button class="copy-btn" onclick="event.stopPropagation();copyText('${r.id}',this)" title="复制房间号">📋</button></div>
                 <div class="host">🏆 ${r.gameName} · ${r.playerCount} 位选手</div>
               </div>
               <div class="room-list-actions">
@@ -746,6 +923,7 @@
             $('#roomCodeDisplay').textContent = '房间: ' + roomCode;
             history.replaceState(null, '', '/host?room=' + roomCode);
             showToast('🔗 已重新进入房间', 'success');
+            loadFromQuestionBank();
             renderContestants();
             renderScoreList();
             renderRanking();
@@ -815,6 +993,7 @@
         $('#questionPreview').className = 'qs-preview empty';
         $('#answerPreview').textContent = '';
         $('#answerPreview').className = 'qs-answer-preview hidden';
+        currentQuestionId = null;
       });
     });
 
@@ -823,10 +1002,11 @@
       if (!roomCode) return;
       const text = $('#questionInput').value.trim();
       const answer = $('#answerInput').value.trim();
-      socket.emit('publish-question', { roomCode, question: text, answer }, (res) => {
+      socket.emit('publish-question', { roomCode, question: text, answer, questionId: currentQuestionId }, (res) => {
         if (!res.ok) return showToast(res.error);
         // 更新本地答案预览
         updateQuestionDisplay(text, answer);
+        currentQuestionId = null;
       });
     });
 
@@ -835,6 +1015,7 @@
       socket.emit('publish-question', { roomCode, question: '', answer: '' }, (res) => {
         if (!res.ok) return showToast(res.error);
         updateQuestionDisplay('', '');
+        currentQuestionId = null;
       });
     });
 
@@ -844,6 +1025,18 @@
       const curAnswer = $('#answerPreview').classList.contains('hidden') ? '' : $('#answerPreview').textContent.replace('💡 正确答案：', '');
       updateQuestionDisplay(question, curAnswer);
     });
+
+    // 从 sessionStorage 读取题库选用的题目（由 questions.html 的"选用"写入）
+    function loadFromQuestionBank() {
+      const q = sessionStorage.getItem('use_question');
+      const a = sessionStorage.getItem('use_answer');
+      if (q) {
+        updateQuestionDisplay(q, a);
+        sessionStorage.removeItem('use_question');
+        sessionStorage.removeItem('use_answer');
+      }
+      currentQuestionId = null; // 非内置题库选择，不跟踪 ID
+    }
 
     function updateQuestionDisplay(question, answer) {
       const preview = $('#questionPreview');
@@ -870,6 +1063,118 @@
         answerPreview.textContent = '';
         answerPreview.className = 'qs-answer-preview hidden';
       }
+    }
+
+    // ======== 题库选取（只需验证一次） ========
+    let bankQuestions = [];
+    let bankPassword = '';
+    let currentQuestionId = null;
+    let usedQuestionIds = [];
+
+    $('#bankBtn').addEventListener('click', () => {
+      const bank = $('#questionBank');
+      if (bank.classList.contains('hidden')) {
+        bank.classList.remove('hidden');
+        if (bankPassword) {
+          // 已验证过，直接刷新题库
+          $('#qbPwdRow').classList.add('hidden');
+          $('#qbList').classList.remove('hidden');
+          refreshQuestionBank();
+        } else {
+          // 未验证，显示密码输入
+          $('#qbPwdRow').classList.remove('hidden');
+          $('#qbList').classList.add('hidden');
+          $('#qbPwdInput').value = '';
+          $('#qbPwdInput').focus();
+        }
+      } else {
+        bank.classList.add('hidden');
+      }
+    });
+
+    $('#qbPwdInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#qbUnlockBtn').click();
+    });
+
+    $('#qbUnlockBtn').addEventListener('click', () => {
+      const password = $('#qbPwdInput').value.trim();
+      if (!password) return showToast('请输入管理密码');
+      if (!roomCode) return;
+
+      $('#qbUnlockBtn').disabled = true;
+      $('#qbUnlockBtn').textContent = '验证中...';
+      $('#qbList').classList.remove('hidden');
+      $('#qbList').innerHTML = '<div class="qb-loading">验证中...</div>';
+
+      socket.emit('get-questions', { roomCode, password }, (res) => {
+        $('#qbUnlockBtn').disabled = false;
+        $('#qbUnlockBtn').textContent = '验证';
+
+        if (!res.ok) {
+          $('#qbList').innerHTML = '<div class="qb-empty">❌ 密码错误</div>';
+          return showToast(res.error);
+        }
+
+        // 验证成功，记住密码、隐藏密码行、显示题目
+        bankPassword = password;
+        $('#qbPwdRow').classList.add('hidden');
+        bankQuestions = res.questions || [];
+        usedQuestionIds = res.usedQuestionIds || [];
+        renderQuestionBank();
+      });
+    });
+
+    function refreshQuestionBank() {
+      if (!roomCode || !bankPassword) return;
+      const list = $('#qbList');
+      list.innerHTML = '<div class="qb-loading">加载中...</div>';
+      socket.emit('get-questions', { roomCode, password: bankPassword }, (res) => {
+        if (!res.ok) return;
+        bankQuestions = res.questions || [];
+        usedQuestionIds = res.usedQuestionIds || [];
+        renderQuestionBank();
+      });
+    }
+
+    function renderQuestionBank() {
+      const list = $('#qbList');
+      const count = $('#qbCount');
+      count.textContent = bankQuestions.length + ' 题';
+
+      if (!bankQuestions || bankQuestions.length === 0) {
+        list.innerHTML = '<div class="qb-empty">📭 暂无题目，请前往 <a href="/questions?room=' + roomCode + '" style="color:var(--accent-blue);text-decoration:none;">题库管理</a> 添加</div>';
+        return;
+      }
+
+      list.innerHTML = bankQuestions.map(q => {
+        const used = usedQuestionIds.includes(q.id);
+        return `
+          <div class="qb-item${used ? ' qb-used' : ''}" data-id="${q.id}">
+            <span class="qb-q">${used ? '✅ ' : ''}${escapeHtml(q.question)}</span>
+            <span class="qb-a">${escapeHtml(q.answer) || '—'}</span>
+          </div>
+        `;
+      }).join('');
+
+      // 点击题目自动填入输入框
+      list.querySelectorAll('.qb-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const id = item.dataset.id;
+          const q = bankQuestions.find(bq => bq.id === id);
+          if (!q) return;
+          currentQuestionId = id;
+          $('#questionInput').value = q.question;
+          $('#answerInput').value = q.answer || '';
+          $('#questionBank').classList.add('hidden');
+          showToast('✅ 已选用题目，点击"发布题目"发送', 'success');
+        });
+      });
+    }
+
+    function escapeHtml(text) {
+      const d = document.createElement('div');
+      d.textContent = text || '';
+      return d.innerHTML;
     }
 
     // ======== 返回房间列表 ========
