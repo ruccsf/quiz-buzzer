@@ -555,7 +555,7 @@
       </div>
 
       <!-- 题目输入+发布+展示 -->
-      <div class="question-section hidden" id="questionSection">
+      <div class="question-section" id="questionSection">
         <div class="qs-label">📝 当前题目</div>
         <textarea class="qs-input" id="questionInput" placeholder="输入题目文本..." rows="2"></textarea>
         <div class="qs-actions">
@@ -811,12 +811,10 @@
     });
 
     function updateQuestionDisplay(question) {
-      const section = $('#questionSection');
       const preview = $('#questionPreview');
       const input = $('#questionInput');
 
       if (question && question.trim()) {
-        section.classList.remove('hidden');
         preview.textContent = question;
         preview.className = 'qs-preview';
         input.value = question;
@@ -824,7 +822,6 @@
         preview.textContent = '暂无题目';
         preview.className = 'qs-preview empty';
         input.value = '';
-        section.classList.add('hidden');
       }
     }
 
