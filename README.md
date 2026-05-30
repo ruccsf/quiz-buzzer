@@ -2,7 +2,7 @@
 
 **主持人控制大屏，选手用手机抢答** — 支持实时抢答、计时、计分，适合电视节目、课堂互动、团建活动。
 
-> 当前版本：**v0.2** | GitHub：[ruccsf/quiz-buzzer](https://github.com/ruccsf/quiz-buzzer)
+> 当前版本：**v0.2** | GitHub：[ruccsf/quiz-buzzer](https://github.com/ruccsf/quiz-buzzer) | 更新：2026-05-30
 
 ---
 
