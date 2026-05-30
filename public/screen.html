@@ -120,21 +120,29 @@
 
     /* ---- 大屏题目展示 ---- */
     .screen-question {
-      flex-shrink: 0;
       text-align: center;
-      padding: 12px 24px;
-      margin: 4px 0 8px;
-      background: rgba(74, 158, 255, 0.1);
+      padding: 16px 32px;
+      background: rgba(74, 158, 255, 0.08);
       border: 1px solid rgba(74, 158, 255, 0.2);
-      border-radius: var(--radius-sm);
-      font-size: 32px;
+      border-radius: 12px;
+      font-size: 40px;
       font-weight: 700;
       color: var(--accent-yellow);
-      line-height: 1.4;
+      line-height: 1.5;
       word-break: break-word;
       animation: fadeIn 0.5s ease;
+      max-width: 90%;
     }
     .screen-question.hidden { display: none; }
+    .screen-question .sq-answer {
+      display: block;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(0, 230, 118, 0.2);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
 
     /* ---- 选手卡片网格 ---- */
     .screen-cards {
@@ -286,6 +294,25 @@
     /* ---- 通用隐藏 ---- */
     .hidden { display: none !important; }
 
+    /* ---- 撒花效果 ---- */
+    .confetti-container {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 999;
+      overflow: hidden;
+    }
+    .confetti {
+      position: absolute;
+      width: 10px; height: 10px;
+      opacity: 0;
+      animation: confettiFall 2.5s ease-out forwards;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
     /* ---- 空状态 ---- */
     .empty-hint {
       color: var(--text-secondary);
@@ -359,9 +386,8 @@
     <div class="screen-status">
       <div class="status-big-text idle" id="statusBigText">等待开始抢答</div>
       <div class="timer-big idle" id="timerBig">--</div>
+      <div class="screen-question hidden" id="screenQuestion"></div>
     </div>
-
-    <div class="screen-question hidden" id="screenQuestion"></div>
 
     <div class="screen-cards" id="cardsContainer">
       <div class="empty-hint">暂无选手加入</div>
@@ -437,7 +463,11 @@
 
         // 显示已有题目
         if (room.currentQuestion && room.currentQuestion.trim()) {
-          $('#screenQuestion').textContent = '📝 ' + room.currentQuestion;
+          let html = '📝 ' + room.currentQuestion;
+          if (room.currentAnswer && room.currentAnswer.trim()) {
+            html += '<span class="sq-answer">💡 ' + room.currentAnswer + '</span>';
+          }
+          $('#screenQuestion').innerHTML = html;
           $('#screenQuestion').classList.remove('hidden');
         }
 
@@ -457,9 +487,10 @@
     socket.on('question-update', ({ question }) => {
       const el = $('#screenQuestion');
       if (question && question.trim()) {
-        el.textContent = '📝 ' + question;
+        el.innerHTML = '📝 ' + question;
         el.classList.remove('hidden');
       } else {
+        el.innerHTML = '';
         el.classList.add('hidden');
       }
     });
@@ -472,6 +503,10 @@
       if (state === 'idle') {
         updateTimer(null);
         clearHighlights();
+        // 清除判定后的状态文本
+        const se = $('#statusBigText');
+        se.textContent = '⏸️ 等待开始抢答';
+        se.className = 'status-big-text idle';
       }
     });
 
@@ -480,15 +515,43 @@
       addEventLog('🏆 ' + winnerName + ' 抢答成功！', true);
     });
 
-    socket.on('judge-result', ({ correct, contestantId, delta }) => {
+    socket.on('judge-result', ({ correct, contestantId, delta, answer }) => {
       highlightCard(contestantId, correct ? 'correct' : 'wrong');
       setTimeout(() => {
         const cards = $$('.s-card');
         cards.forEach(c => { c.classList.remove('correct', 'wrong'); });
       }, 2500);
+
+      // 更新大状态文本
+      const statusEl = $('#statusBigText');
+      const buzzerName = currentBuzzer?.name || '选手';
+      if (correct) {
+        statusEl.textContent = '✅ ' + buzzerName + ' 回答正确！+' + delta + '分';
+        statusEl.className = 'status-big-text resolved';
+        // 🎉 撒花效果
+        launchConfetti();
+      } else {
+        statusEl.textContent = '❌ ' + buzzerName + ' 回答错误 ' + delta + '分';
+        statusEl.className = 'status-big-text resolved';
+      }
+
       addEventLog(correct
         ? '✅ 回答正确 +' + delta + '分'
         : '❌ 回答错误 ' + delta + '分');
+
+      // 公布答案
+      if (answer) {
+        const el = $('#screenQuestion');
+        let html = el.innerHTML;
+        // 如果有已有答案行则替换，否则追加
+        if (html.includes('<span class="sq-answer"')) {
+          html = html.replace(/<span class="sq-answer">.*<\/span>/, '<span class="sq-answer">💡 ' + answer + '</span>');
+        } else {
+          html += '<span class="sq-answer">💡 ' + answer + '</span>';
+        }
+        el.innerHTML = html;
+        el.classList.remove('hidden');
+      }
     });
 
     socket.on('score-update', ({ contestants: updated }) => {
@@ -691,6 +754,27 @@
         more.innerHTML = `<span style="color:var(--text-secondary);font-size:18px;">… 共 ${sorted.length} 人</span>`;
         inner.appendChild(more);
       }
+    }
+
+    function launchConfetti() {
+      const container = document.createElement('div');
+      container.className = 'confetti-container';
+      const colors = ['#ff1744', '#ffd600', '#00e676', '#4a9eff', '#ff6b6b', '#7c4dff', '#ff9100'];
+      for (let i = 0; i < 60; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti';
+        el.style.left = Math.random() * 100 + '%';
+        el.style.top = '-10px';
+        el.style.background = colors[Math.floor(Math.random() * colors.length)];
+        el.style.width = (6 + Math.random() * 8) + 'px';
+        el.style.height = (6 + Math.random() * 8) + 'px';
+        el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        el.style.animationDelay = (Math.random() * 1.2).toFixed(2) + 's';
+        el.style.animationDuration = (1.8 + Math.random() * 1.2).toFixed(2) + 's';
+        container.appendChild(el);
+      }
+      document.body.appendChild(container);
+      setTimeout(() => container.remove(), 4000);
     }
 
     function addEventLog(text, highlight) {

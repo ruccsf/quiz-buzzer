@@ -113,6 +113,7 @@ function createRoom(gameName) {
     timerRemaining: 0,
     currentBuzzer: null,
     currentQuestion: '',
+    currentAnswer: '',
     buzzHistory: [],
     round: 0,
   };
@@ -227,6 +228,7 @@ io.on('connection', (socket) => {
         contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color })),
         state: room.state,
         currentQuestion: room.currentQuestion,
+        currentAnswer: room.currentAnswer,
       }});
     } catch (err) {
       callback?.({ ok: false, error: err.message });
@@ -263,6 +265,7 @@ io.on('connection', (socket) => {
             contestants: room.contestants,
             state: room.state,
             currentQuestion: room.currentQuestion,
+            currentAnswer: room.currentAnswer,
           },
         });
         return;
@@ -299,6 +302,7 @@ io.on('connection', (socket) => {
           contestants: room.contestants,
           state: room.state,
           currentQuestion: room.currentQuestion,
+          currentAnswer: room.currentAnswer,
         },
       });
     } catch (err) {
@@ -428,6 +432,7 @@ io.on('connection', (socket) => {
         contestantId: buzzer.contestantId,
         delta,
         newScore: contestant?.score || 0,
+        answer: room.currentAnswer || '',
       });
       io.to(roomCode).emit('score-update', { contestants: room.contestants });
       saveRooms();
@@ -461,6 +466,7 @@ io.on('connection', (socket) => {
         contestantId: buzzer.contestantId,
         delta,
         newScore: contestant?.score || 0,
+        answer: room.currentAnswer || '',
       });
       io.to(roomCode).emit('score-update', { contestants: room.contestants });
       saveRooms();
@@ -560,6 +566,7 @@ io.on('connection', (socket) => {
         currentBuzzer: room.currentBuzzer,
         round: room.round,
         currentQuestion: room.currentQuestion,
+        currentAnswer: room.currentAnswer,
       },
     });
   });
@@ -593,16 +600,33 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ---- 主持人释放房间（返回房间列表时调用） ----
+  socket.on('leave-host', ({ roomCode }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (room && socket.id === room.hostSocketId) {
+        room.hostSocketId = null;
+      }
+      socket.leave(roomCode);
+      if (currentRoom === roomCode) currentRoom = null;
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
   // ---- 主持人发布题目 ----
-  socket.on('publish-question', ({ roomCode, question }, callback) => {
+  socket.on('publish-question', ({ roomCode, question, answer }, callback) => {
     try {
       const room = getRoom(roomCode);
       if (!room) return callback?.({ ok: false, error: '房间不存在' });
       if (socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '非主持人' });
 
       room.currentQuestion = question || '';
+      room.currentAnswer = answer || '';
+      // 只广播题目，答案保密——判分时随 judge-result 公布
       io.to(roomCode).emit('question-update', { question: room.currentQuestion });
-      callback?.({ ok: true });
+      callback?.({ ok: true, answer: room.currentAnswer });
     } catch (err) {
       callback?.({ ok: false, error: err.message });
     }

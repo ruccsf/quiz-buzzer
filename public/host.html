@@ -157,6 +157,17 @@
       font-size: 14px;
       font-weight: 400;
     }
+    .question-section .qs-answer-preview {
+      margin-top: 6px;
+      padding: 6px 10px;
+      background: rgba(0, 230, 118, 0.1);
+      border: 1px solid rgba(0, 230, 118, 0.2);
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent-green);
+    }
+    .question-section .qs-answer-preview.hidden { display: none; }
 
     /* ---- 选手列表 ---- */
     .contestants-grid {
@@ -558,11 +569,14 @@
       <div class="question-section" id="questionSection">
         <div class="qs-label">📝 当前题目</div>
         <textarea class="qs-input" id="questionInput" placeholder="输入题目文本..." rows="2"></textarea>
+        <div class="qs-label" style="margin-top:8px;">💡 正确答案</div>
+        <textarea class="qs-input" id="answerInput" placeholder="输入正确答案（判分后自动公布）..." rows="1" style="min-height:36px;"></textarea>
         <div class="qs-actions">
           <button class="btn btn-primary" id="publishQuestionBtn" style="flex:2;">📤 发布题目</button>
           <button class="btn btn-outline" id="clearQuestionBtn">✕ 清除</button>
         </div>
         <div class="qs-preview empty" id="questionPreview">暂无题目</div>
+        <div class="qs-answer-preview hidden" id="answerPreview"></div>
       </div>
 
       <div class="contestants-grid" id="contestantsGrid">
@@ -629,7 +643,15 @@
       $('#createRoomBtn').disabled = true;
       $('#createRoomBtn').textContent = '创建中...';
 
+      // 安全超时：防止按钮卡在"创建中"状态
+      const safetyTimer = setTimeout(() => {
+        $('#createRoomBtn').disabled = false;
+        $('#createRoomBtn').textContent = '🎯 创建房间';
+        showToast('创建超时，请重试', 'error');
+      }, 8000);
+
       socket.emit('create-room', { gameName }, (res) => {
+        clearTimeout(safetyTimer);
         if (!res.ok) {
           $('#createRoomBtn').disabled = false;
           $('#createRoomBtn').textContent = '🎯 创建房间';
@@ -641,10 +663,9 @@
         // 认领主持人
         socket.emit('claim-host', { roomCode }, (claimRes) => {
           $('#createRoomBtn').disabled = false;
+          $('#createRoomBtn').textContent = '🎯 创建房间';
 
           if (!claimRes.ok) {
-            // 认领失败，回到创建视图
-            $('#createView').classList.remove('hidden');
             showToast('认领失败: ' + claimRes.error);
             return;
           }
@@ -654,7 +675,7 @@
           $('#dashboardView').classList.remove('hidden');
 
           // 更新房间信息
-          $('#roomTitle').textContent = `🏆 ${gameName}`;
+          $('#roomTitle').textContent = '🏆 ' + gameName;
           $('#roomCodeDisplay').textContent = '房间: ' + roomCode;
 
           // 设置 URL（不刷新页面）
@@ -786,7 +807,14 @@
     $('#nextBtn').addEventListener('click', () => {
       if (!roomCode) return;
       socket.emit('next-question', { roomCode }, (res) => {
-        if (!res.ok) showToast(res.error);
+        if (!res.ok) return showToast(res.error);
+        // 清空题目和答案输入框
+        $('#questionInput').value = '';
+        $('#answerInput').value = '';
+        $('#questionPreview').textContent = '暂无题目';
+        $('#questionPreview').className = 'qs-preview empty';
+        $('#answerPreview').textContent = '';
+        $('#answerPreview').className = 'qs-answer-preview hidden';
       });
     });
 
@@ -794,25 +822,34 @@
     $('#publishQuestionBtn').addEventListener('click', () => {
       if (!roomCode) return;
       const text = $('#questionInput').value.trim();
-      socket.emit('publish-question', { roomCode, question: text }, (res) => {
-        if (!res.ok) showToast(res.error);
+      const answer = $('#answerInput').value.trim();
+      socket.emit('publish-question', { roomCode, question: text, answer }, (res) => {
+        if (!res.ok) return showToast(res.error);
+        // 更新本地答案预览
+        updateQuestionDisplay(text, answer);
       });
     });
 
     $('#clearQuestionBtn').addEventListener('click', () => {
       if (!roomCode) return;
-      socket.emit('publish-question', { roomCode, question: '' }, (res) => {
-        if (!res.ok) showToast(res.error);
+      socket.emit('publish-question', { roomCode, question: '', answer: '' }, (res) => {
+        if (!res.ok) return showToast(res.error);
+        updateQuestionDisplay('', '');
       });
     });
 
     socket.on('question-update', ({ question }) => {
-      updateQuestionDisplay(question);
+      // question-update 不含答案（答案随 judge-result 公布）
+      // 保持当前答案显示不变
+      const curAnswer = $('#answerPreview').classList.contains('hidden') ? '' : $('#answerPreview').textContent.replace('💡 正确答案：', '');
+      updateQuestionDisplay(question, curAnswer);
     });
 
-    function updateQuestionDisplay(question) {
+    function updateQuestionDisplay(question, answer) {
       const preview = $('#questionPreview');
       const input = $('#questionInput');
+      const answerPreview = $('#answerPreview');
+      const answerInput = $('#answerInput');
 
       if (question && question.trim()) {
         preview.textContent = question;
@@ -823,6 +860,16 @@
         preview.className = 'qs-preview empty';
         input.value = '';
       }
+
+      // 答案展示（host 自己可见，不广播给客户端）
+      answerInput.value = answer || '';
+      if (answer && answer.trim()) {
+        answerPreview.textContent = '💡 正确答案：' + answer;
+        answerPreview.className = 'qs-answer-preview';
+      } else {
+        answerPreview.textContent = '';
+        answerPreview.className = 'qs-answer-preview hidden';
+      }
     }
 
     // ======== 返回房间列表 ========
@@ -830,6 +877,11 @@
       if (!roomCode) return;
       // 询问确认
       if (!confirm('返回房间列表后，当前大屏将断开。选手可继续留在房间等待。')) return;
+      // 通知服务端释放主持人权限
+      const code = roomCode;
+      socket.emit('leave-host', { roomCode }, () => {
+        // 不管结果如何，继续返回
+      });
       roomCode = null;
       logEntries = [];
       $('#dashboardView').classList.add('hidden');
@@ -908,9 +960,11 @@
       addLogEntry(`🏆 ${winnerName} 抢答成功`);
     });
 
-    socket.on('judge-result', ({ correct, contestantId, delta }) => {
+    socket.on('judge-result', ({ correct, contestantId, delta, answer }) => {
       highlightContestant(contestantId, correct ? 'correct' : 'wrong');
-      addLogEntry(`${correct ? '✅ 正确 +' : '❌ 错误 '}${delta > 0 ? '+' : ''}${delta}`);
+      let log = `${correct ? '✅ 正确 +' : '❌ 错误 '}${delta > 0 ? '+' : ''}${delta}`;
+      if (answer) log += `  💡 ${answer}`;
+      addLogEntry(log);
     });
 
     socket.on('score-update', () => {
@@ -973,7 +1027,7 @@
         if (!res.ok) return;
         // 同步更新题目展示
         if (res.room.currentQuestion !== undefined) {
-          updateQuestionDisplay(res.room.currentQuestion);
+          updateQuestionDisplay(res.room.currentQuestion, res.room.currentAnswer);
         }
         const grid = $('#contestantsGrid');
         const contestants = res.room.contestants;

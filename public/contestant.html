@@ -98,6 +98,15 @@
       flex-shrink: 0;
     }
     .question-card.hidden { display: none; }
+    .question-card .qc-answer {
+      display: block;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(0, 230, 118, 0.2);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent-green);
+    }
 
     /* ---- 状态提示 ---- */
     .status-hint {
@@ -277,10 +286,13 @@
         }
         $('#hostInfo').textContent = `🏆 ${res.room.gameName}`;
         updateUIState(res.room.state, res.room.currentBuzzer);
-        // 显示已发布的题目
+        // 显示已发布的题目和答案
         const q = res.room.currentQuestion;
+        const a = res.room.currentAnswer;
         if (q && q.trim()) {
-          $('#questionCard').textContent = '📝 ' + q;
+          let html = '📝 ' + q;
+          if (a && a.trim()) html += '<span class="qc-answer">💡 ' + a + '</span>';
+          $('#questionCard').innerHTML = html;
           $('#questionCard').classList.remove('hidden');
         }
       } else {
@@ -301,10 +313,13 @@
             }
             $('#hostInfo').textContent = `🏆 ${res.room.gameName}`;
             updateUIState(res.room.state, res.room.currentBuzzer);
-        // 显示已发布的题目
+        // 显示已发布的题目和答案
         const q = res.room.currentQuestion;
+        const a = res.room.currentAnswer;
         if (q && q.trim()) {
-          $('#questionCard').textContent = '📝 ' + q;
+          let html = '📝 ' + q;
+          if (a && a.trim()) html += '<span class="qc-answer">💡 ' + a + '</span>';
+          $('#questionCard').innerHTML = html;
           $('#questionCard').classList.remove('hidden');
         }
             showToast('🔗 已重新连接', 'success');
@@ -318,9 +333,10 @@
     socket.on('question-update', ({ question }) => {
       const card = $('#questionCard');
       if (question && question.trim()) {
-        card.textContent = '📝 ' + question;
+        card.innerHTML = '📝 ' + question;
         card.classList.remove('hidden');
       } else {
+        card.innerHTML = '';
         card.classList.add('hidden');
       }
     });
@@ -347,10 +363,24 @@
       }
     });
 
-    socket.on('judge-result', ({ correct, contestantId: targetId, delta, newScore }) => {
+    socket.on('judge-result', ({ correct, contestantId: targetId, delta, newScore, answer }) => {
       const btn = $('#buzzBtn');
       const hint = $('#statusHint');
       const scoreEl = $('#scoreDisplay');
+
+      // 公布答案到题目卡片
+      const card = $('#questionCard');
+      if (answer) {
+        // 如果卡片已有答案行，替换；否则追加
+        let html = card.innerHTML;
+        if (html.includes('<span class="qc-answer"')) {
+          html = html.replace(/<span class="qc-answer">.*<\/span>/, '<span class="qc-answer">💡 ' + answer + '</span>');
+        } else {
+          html += '<span class="qc-answer">💡 ' + answer + '</span>';
+        }
+        card.innerHTML = html;
+        card.classList.remove('hidden');
+      }
 
       if (targetId === contestantId) {
         btn.className = correct ? 'buzz-btn correct' : 'buzz-btn wrong';
