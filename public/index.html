@@ -2,74 +2,149 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>加入抢答 - 知识竞赛</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>电视知识竞赛抢答系统</title>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .landing-view {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #0a0e27 0%, #141838 50%, #1a1040 100%);
+    }
+
+    .landing-logo {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeIn 0.8s ease;
+    }
+    .landing-logo .icon {
+      font-size: 64px;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .landing-logo h1 {
+      font-size: 36px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #4a9eff, #7c4dff, #ff6b6b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+    }
+    .landing-logo .subtitle {
+      color: var(--text-secondary);
+      font-size: 16px;
+      letter-spacing: 1px;
+    }
+
+    .role-cards {
+      display: flex;
+      gap: 24px;
+      animation: slideUp 0.6s ease;
+      margin-bottom: 40px;
+    }
+
+    .role-card {
+      background: var(--bg-secondary);
+      border: 2px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      width: 220px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .role-card:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-6px);
+      box-shadow: 0 12px 40px rgba(74, 158, 255, 0.15);
+    }
+    .role-card:active {
+      transform: translateY(-2px);
+    }
+    .role-card .emoji {
+      font-size: 48px;
+      line-height: 1;
+    }
+    .role-card .title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .role-card .desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .landing-footer {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.8;
+      animation: fadeIn 1s ease;
+    }
+    .landing-footer a {
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+    .landing-footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .landing-logo h1 { font-size: 26px; }
+      .landing-logo .icon { font-size: 48px; }
+      .role-cards { flex-direction: column; gap: 16px; }
+      .role-card { width: 100%; max-width: 300px; padding: 24px 20px; }
+    }
+    @media (max-width: 400px) {
+      .landing-logo { margin-bottom: 32px; }
+      .landing-logo h1 { font-size: 22px; }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div style="text-align:center; margin-bottom: 40px; animation: fadeIn 0.6s ease;">
-      <div style="font-size: 48px; line-height: 1; margin-bottom: 8px;">📱</div>
-      <h1 style="font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #4a9eff, #7c4dff, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">选手加入</h1>
-      <p style="color: var(--text-secondary); margin-top: 8px; font-size: 15px;">输入房间号和昵称，加入抢答</p>
+  <div class="landing-view">
+    <div class="landing-logo">
+      <div class="icon">🎯</div>
+      <h1>电视知识竞赛抢答系统</h1>
+      <div class="subtitle">主持人控制大屏 · 选手手机抢答 · 实时计分排名</div>
     </div>
 
-    <!-- 加入房间 -->
-    <div class="card" style="animation: slideUp 0.5s ease; max-width: 420px;">
-      <div class="form-group">
-        <label>房间号</label>
-        <input class="form-input code-input" id="roomCode" type="text" placeholder="XXXX" maxlength="4" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label>你的昵称</label>
-        <input class="form-input" id="contestantName" type="text" placeholder="输入选手名称" maxlength="10">
-      </div>
-      <button class="btn btn-primary" id="joinRoomBtn">加入房间</button>
+    <div class="role-cards">
+      <a class="role-card" href="/host">
+        <div class="emoji">🎤</div>
+        <div class="title">主持人</div>
+        <div class="desc">创建并管理抢答房间<br>开始 / 判分 / 下一题</div>
+      </a>
+      <a class="role-card" href="/player">
+        <div class="emoji">📱</div>
+        <div class="title">选手加入</div>
+        <div class="desc">输入房间号加入抢答<br>手机端大按钮抢答</div>
+      </a>
+      <a class="role-card" href="/screen">
+        <div class="emoji">📺</div>
+        <div class="title">大屏展示</div>
+        <div class="desc">投影比赛实况到大屏<br>实时排名一目了然</div>
+      </a>
     </div>
 
-    <p style="color: var(--text-secondary); font-size: 13px; margin-top: 24px;">
-      🎤 主持人请 <a href="/host" style="color: var(--accent-blue);">点击此处创建房间</a>
-    </p>
+    <div class="landing-footer">
+      <strong>使用说明：</strong>电脑打开 <strong>/host</strong> 做主持人 · 手机打开 <strong>/player</strong> 加入抢答 · 电视投屏用 <strong>/screen</strong><br>
+      确保所有设备在 <strong>同一局域网</strong> 内才能互相连接<br>
+      v0.2 · <a href="https://github.com/ruccsf/quiz-buzzer" target="_blank">GitHub</a>
+    </div>
   </div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/socket-client.js"></script>
-  <script>
-    // 房间号自动大写
-    const roomCodeInput = $('#roomCode');
-    roomCodeInput.addEventListener('input', () => {
-      roomCodeInput.value = roomCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    });
-
-    // 回车键快速操作
-    $('#contestantName').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') $('#joinRoomBtn').click();
-    });
-    roomCodeInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') $('#joinRoomBtn').click();
-    });
-
-    // 加入房间
-    $('#joinRoomBtn').addEventListener('click', () => {
-      const roomCode = $('#roomCode').value.trim();
-      const name = $('#contestantName').value.trim();
-      if (!roomCode) return showToast('请输入房间号');
-      if (!name) return showToast('请输入你的昵称');
-      if (roomCode.length !== 4) return showToast('房间号应为4位');
-
-      $('#joinRoomBtn').disabled = true;
-      $('#joinRoomBtn').textContent = '加入中...';
-
-      socket.emit('join-room', { roomCode, name }, (res) => {
-        $('#joinRoomBtn').disabled = false;
-        $('#joinRoomBtn').textContent = '加入房间';
-        if (res.ok) {
-          window.location.href = `/contestant?room=${roomCode}&id=${res.contestantId}`;
-        } else {
-          showToast(res.error);
-        }
-      });
-    });
-  </script>
 </body>
 </html>

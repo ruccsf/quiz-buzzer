@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // 路由：无后缀页面路径 → HTML 文件
-app.get(['/host', '/contestant'], (req, res) => {
+app.get(['/host', '/contestant', '/screen', '/player'], (req, res) => {
   res.sendFile(__dirname + '/public' + req.path + '.html');
 });
 
@@ -32,7 +32,7 @@ function saveRooms() {
       for (const [code, room] of Object.entries(rooms)) {
         data[code] = {
           id: room.id,
-          hostName: room.hostName,
+          gameName: room.gameName,
           hostSocketId: null,          // 运行时状态，不持久化
           contestants: room.contestants.map(c => ({
             id: c.id,
@@ -65,6 +65,7 @@ function loadRooms() {
     for (const [code, saved] of Object.entries(data)) {
       rooms[code] = {
         ...saved,
+        gameName: saved.gameName || saved.hostName || '知识竞赛', // 兼容旧版 hostName 字段
         hostSocketId: null,
         timerInterval: null,
         // 确保 contestants 的 socketId 是 null
@@ -99,11 +100,11 @@ function generateId() {
 
 const COLORS = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#A8E6CF', '#FF8A5C', '#7C4DFF', '#00BCD4', '#FF4081'];
 
-function createRoom(hostName) {
+function createRoom(gameName) {
   const code = generateRoomCode();
   rooms[code] = {
     id: code,
-    hostName,
+    gameName,
     hostSocketId: null,
     contestants: [],
     state: 'idle',       // idle | open | locked | resolved
@@ -155,7 +156,7 @@ io.on('connection', (socket) => {
   socket.on('list-rooms', (data, callback) => {
     if (typeof callback !== 'function') callback = data;
     const list = Object.values(rooms)
-      .map(r => ({ id: r.id, hostName: r.hostName, playerCount: r.contestants.length }));
+      .map(r => ({ id: r.id, gameName: r.gameName, playerCount: r.contestants.length }));
     typeof callback === 'function' && callback({ ok: true, rooms: list });
   });
 
@@ -176,9 +177,9 @@ io.on('connection', (socket) => {
   });
 
   // ---- 创建房间 ----
-  socket.on('create-room', ({ hostName }, callback) => {
+  socket.on('create-room', ({ gameName }, callback) => {
     try {
-      const room = createRoom(hostName || '主持人');
+      const room = createRoom(gameName || '知识竞赛');
       callback({ ok: true, roomCode: room.id });
     } catch (err) {
       callback({ ok: false, error: err.message });
@@ -221,7 +222,7 @@ io.on('connection', (socket) => {
 
       callback?.({ ok: true, room: {
         id: room.id,
-        hostName: room.hostName,
+        gameName: room.gameName,
         contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color })),
         state: room.state,
       }});
@@ -256,7 +257,7 @@ io.on('connection', (socket) => {
           reconnected: true,
           room: {
             id: room.id,
-            hostName: room.hostName,
+            gameName: room.gameName,
             contestants: room.contestants,
             state: room.state,
           },
@@ -291,7 +292,7 @@ io.on('connection', (socket) => {
         reconnected: false,
         room: {
           id: room.id,
-          hostName: room.hostName,
+          gameName: room.gameName,
           contestants: room.contestants,
           state: room.state,
         },
@@ -548,7 +549,7 @@ io.on('connection', (socket) => {
       ok: true,
       room: {
         id: room.id,
-        hostName: room.hostName,
+        gameName: room.gameName,
         contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color, connected: c.socketId !== null })),
         state: room.state,
         timer: room.timer,
@@ -556,6 +557,34 @@ io.on('connection', (socket) => {
         round: room.round,
       },
     });
+  });
+
+  // ---- 大屏端加入房间（只读监听，不控制状态） ----
+  socket.on('join-screen', ({ roomCode }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      socket.join(roomCode);
+      currentRoom = roomCode;
+      callback({
+        ok: true,
+        room: {
+          id: room.id,
+          gameName: room.gameName,
+          contestants: room.contestants.map(c => ({
+            id: c.id, name: c.name, score: c.score, color: c.color,
+            connected: c.socketId !== null,
+          })),
+          state: room.state,
+          timer: room.timer,
+          timerRemaining: room.timerRemaining,
+          currentBuzzer: room.currentBuzzer,
+          round: room.round,
+        },
+      });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
   });
 
   // ---- 断开连接 ----

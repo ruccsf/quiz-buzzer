@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0">
+  <title>大屏展示 - 知识竞赛</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ======== 大屏全局 ======== */
+    body {
+      background: linear-gradient(135deg, #0a0e27 0%, #141838 50%, #1a1040 100%);
+      user-select: none;
+    }
+
+    /* ===== Phase 1: 加入界面 ===== */
+    .screen-join-view {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .screen-join-view .join-card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      padding: 48px 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 16px 64px rgba(0,0,0,0.4);
+    }
+    .screen-join-view .join-card .icon { font-size: 64px; line-height: 1; margin-bottom: 16px; }
+    .screen-join-view .join-card h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .screen-join-view .join-card p { color: var(--text-secondary); font-size: 15px; margin-bottom: 28px; }
+    .screen-join-view .join-card .form-group { margin-bottom: 24px; }
+    .join-tip {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin-top: 20px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ===== Phase 2: 大屏展示 ===== */
+    .screen-display {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 32px 48px 24px;
+      overflow: hidden;
+    }
+
+    /* ---- 顶栏 ---- */
+    .screen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .screen-header .game-title {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #4a9eff, #7c4dff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .screen-header .meta-info {
+      font-size: 20px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .screen-header .meta-info .room-code {
+      color: var(--text-primary);
+      letter-spacing: 2px;
+      margin-right: 16px;
+    }
+    .screen-header .meta-info .round-info {
+      background: var(--bg-card);
+      padding: 6px 16px;
+      border-radius: 8px;
+    }
+
+    /* ---- 中央状态区 ---- */
+    .screen-status {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 0;
+      padding: 20px 0;
+    }
+
+    .status-big-text {
+      font-size: 48px;
+      font-weight: 800;
+      text-align: center;
+      transition: all 0.3s;
+      min-height: 64px;
+    }
+    .status-big-text.idle { color: var(--text-secondary); }
+    .status-big-text.open { color: var(--accent-yellow); animation: pulse 1s infinite; }
+    .status-big-text.locked { color: var(--accent-green); }
+    .status-big-text.resolved { color: var(--accent-blue); }
+
+    .timer-big {
+      font-size: 96px;
+      font-weight: 800;
+      line-height: 1;
+      min-height: 100px;
+      transition: all 0.3s;
+    }
+    .timer-big.running { color: var(--accent-yellow); }
+    .timer-big.warning { color: var(--accent-red); animation: pulse 0.5s infinite; }
+    .timer-big.idle { color: var(--text-secondary); }
+
+    /* ---- 选手卡片网格 ---- */
+    .screen-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+      min-height: 0;
+      padding: 12px 0;
+    }
+
+    .s-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px 32px;
+      min-width: 180px;
+      text-align: center;
+      border: 3px solid rgba(255,255,255,0.08);
+      transition: all 0.3s ease;
+      position: relative;
+      animation: fadeIn 0.5s ease;
+    }
+    .s-card .s-name {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .s-card .s-score {
+      font-size: 56px;
+      font-weight: 800;
+      transition: all 0.3s;
+    }
+    .s-card .s-status {
+      font-size: 14px;
+      margin-top: 6px;
+      color: var(--text-secondary);
+    }
+    .s-card .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .s-card .status-dot.online { background: var(--accent-green); box-shadow: 0 0 8px rgba(0,230,118,0.6); }
+    .s-card .status-dot.offline { background: #555; }
+
+    .s-card.buzzed {
+      border-color: var(--accent-yellow);
+      transform: scale(1.1);
+      box-shadow: 0 0 50px rgba(255,214,0,0.3);
+      animation: glow 1.5s infinite;
+      z-index: 2;
+    }
+    .s-card.correct {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 50px rgba(0,230,118,0.4);
+    }
+    .s-card.wrong {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 50px rgba(255,23,68,0.4);
+      animation: shake 0.5s ease;
+    }
+
+    .s-card .buzz-badge {
+      display: none;
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      background: var(--accent-yellow);
+      color: #000;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .s-card.buzzed .buzz-badge { display: block; }
+
+    /* ---- 排名条 ---- */
+    .screen-ranking {
+      flex-shrink: 0;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      margin-top: 8px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .rank-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 8px;
+      background: var(--bg-primary);
+      white-space: nowrap;
+    }
+    .rank-item .r-medal { font-size: 24px; line-height: 1; }
+    .rank-item .r-name { font-size: 20px; font-weight: 600; }
+    .rank-item .r-score { font-size: 22px; font-weight: 800; margin-left: 4px; }
+
+    /* ---- 底部事件条 ---- */
+    .screen-footer {
+      flex-shrink: 0;
+      margin-top: 8px;
+      padding: 8px 0;
+    }
+    .event-log {
+      display: flex;
+      gap: 16px;
+      overflow: hidden;
+      font-size: 16px;
+      color: var(--text-secondary);
+      height: 28px;
+      align-items: center;
+    }
+    .event-log .entry {
+      white-space: nowrap;
+      animation: fadeIn 0.5s ease;
+    }
+    .event-log .highlight {
+      color: var(--accent-yellow);
+      font-weight: 600;
+    }
+
+    /* ---- 警告横幅 ---- */
+    .warning-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255,23,68,0.9);
+      color: #fff;
+      text-align: center;
+      padding: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      z-index: 100;
+      animation: slideDown 0.3s ease;
+    }
+    .warning-banner.hidden { display: none; }
+
+    /* ---- 空状态 ---- */
+    .empty-hint {
+      color: var(--text-secondary);
+      font-size: 20px;
+      text-align: center;
+      padding: 24px;
+    }
+
+    /* ---- 动画补充 ---- */
+    @keyframes slideDown {
+      from { transform: translateY(-100%); }
+      to { transform: translateY(0); }
+    }
+
+    /* ---- 响应式 ---- */
+    @media (max-width: 768px) {
+      .screen-display { padding: 16px; }
+      .screen-header .game-title { font-size: 22px; }
+      .screen-header .meta-info { font-size: 16px; }
+      .status-big-text { font-size: 28px; min-height: 40px; }
+      .timer-big { font-size: 64px; min-height: 68px; }
+      .s-card { padding: 16px 20px; min-width: 120px; }
+      .s-card .s-name { font-size: 20px; }
+      .s-card .s-score { font-size: 36px; }
+      .screen-ranking { flex-wrap: wrap; gap: 8px; padding: 12px; }
+      .rank-item { padding: 4px 12px; }
+      .rank-item .r-name { font-size: 16px; }
+      .rank-item .r-score { font-size: 18px; }
+    }
+    @media (max-width: 400px) {
+      .screen-display { padding: 8px; }
+      .s-card { min-width: 90px; padding: 10px 14px; }
+      .s-card .s-name { font-size: 16px; }
+      .s-card .s-score { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== Phase 1: 加入房间 ===== -->
+  <div class="screen-join-view" id="joinView">
+    <div class="join-card">
+      <div class="icon">📺</div>
+      <h2>大屏展示</h2>
+      <p>将比赛实况投影到大屏幕</p>
+      <div class="form-group">
+        <label>房间号</label>
+        <input class="form-input code-input" id="roomCodeInput" type="text" placeholder="XXXX" maxlength="4" autocomplete="off">
+      </div>
+      <button class="btn btn-primary" id="connectBtn">📺 连接大屏</button>
+      <div class="join-tip">
+        请使用电脑浏览器打开此页面并投屏到电视<br>
+        确保与服务器在 <strong>同一局域网</strong> 内
+      </div>
+    </div>
+    <div style="margin-top:16px;color:var(--text-secondary);font-size:13px;">
+      <a href="/" style="color:var(--accent-blue);text-decoration:none;">← 返回首页</a>
+    </div>
+  </div>
+
+  <!-- ===== Phase 2: 大屏展示 ===== -->
+  <div class="screen-display hidden" id="displayView">
+    <div class="screen-header">
+      <div class="game-title" id="gameTitle">🏆 知识竞赛</div>
+      <div class="meta-info">
+        <span class="room-code" id="roomCodeLabel">房间: ----</span>
+        <span class="round-info" id="roundLabel">第 0 题</span>
+      </div>
+    </div>
+
+    <div class="screen-status">
+      <div class="status-big-text idle" id="statusBigText">等待开始抢答</div>
+      <div class="timer-big idle" id="timerBig">--</div>
+    </div>
+
+    <div class="screen-cards" id="cardsContainer">
+      <div class="empty-hint">暂无选手加入</div>
+    </div>
+
+    <div class="screen-ranking hidden" id="rankingBar">
+      <div id="rankingInner" style="display:flex;gap:12px;"></div>
+    </div>
+
+    <div class="screen-footer">
+      <div class="event-log" id="eventLog">
+        <span class="entry">等待比赛开始…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 警告横幅 -->
+  <div class="warning-banner hidden" id="warningBanner">⚠️ 主持人已断开连接</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/socket-client.js"></script>
+  <script>
+    // ======== 状态 ========
+    let roomCode = null;
+    let contestants = [];
+    let currentState = 'idle';
+    let currentBuzzer = null;
+    let currentRound = 0;
+    let eventEntries = [];
+    let prevRankings = {};
+
+    // ======== Phase 1: 加入 ========
+    const codeInput = $('#roomCodeInput');
+    codeInput.addEventListener('input', () => {
+      codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#connectBtn').click();
+    });
+
+    $('#connectBtn').addEventListener('click', () => {
+      const code = codeInput.value.trim();
+      if (!code || code.length !== 4) return showToast('请输入4位房间号');
+
+      $('#connectBtn').disabled = true;
+      $('#connectBtn').textContent = '连接中...';
+
+      socket.emit('join-screen', { roomCode: code }, (res) => {
+        $('#connectBtn').disabled = false;
+        $('#connectBtn').textContent = '📺 连接大屏';
+
+        if (!res.ok) return showToast(res.error);
+
+        roomCode = code;
+        const room = res.room;
+
+        // 切换到展示模式
+        $('#joinView').classList.add('hidden');
+        $('#displayView').classList.remove('hidden');
+
+        // 填充初始数据
+        $('#gameTitle').textContent = '🏆 ' + (room.gameName || '知识竞赛');
+        $('#roomCodeLabel').textContent = '房间: ' + room.id;
+        currentRound = room.round || 0;
+        $('#roundLabel').textContent = '第 ' + currentRound + ' 题';
+
+        contestants = room.contestants || [];
+        currentState = room.state || 'idle';
+        currentBuzzer = room.currentBuzzer;
+
+        renderCards();
+        renderRanking();
+        updateStatusUI(currentState, currentBuzzer, room.timerRemaining);
+        if (currentState === 'open' && room.timerRemaining > 0) {
+          updateTimer(room.timerRemaining);
+        }
+
+        addEventLog('📡 已连接大屏');
+      });
+    });
+
+    // ======== Socket 事件 ========
+
+    socket.on('buzzer-state', ({ state, winner, remaining }) => {
+      currentState = state;
+      currentBuzzer = winner;
+      updateStatusUI(state, winner, remaining);
+      if (state === 'open' && remaining) updateTimer(remaining);
+      if (state === 'idle') {
+        updateTimer(null);
+        clearHighlights();
+      }
+    });
+
+    socket.on('buzz-result', ({ winnerId, winnerName }) => {
+      highlightCard(winnerId, 'buzzed');
+      addEventLog('🏆 ' + winnerName + ' 抢答成功！', true);
+    });
+
+    socket.on('judge-result', ({ correct, contestantId, delta }) => {
+      highlightCard(contestantId, correct ? 'correct' : 'wrong');
+      setTimeout(() => {
+        const cards = $$('.s-card');
+        cards.forEach(c => { c.classList.remove('correct', 'wrong'); });
+      }, 2500);
+      addEventLog(correct
+        ? '✅ 回答正确 +' + delta + '分'
+        : '❌ 回答错误 ' + delta + '分');
+    });
+
+    socket.on('score-update', ({ contestants: updated }) => {
+      if (updated) contestants = updated;
+      renderCards();
+      renderRanking();
+    });
+
+    socket.on('timer-tick', ({ remaining }) => {
+      updateTimer(remaining);
+    });
+
+    socket.on('contestant-joined', ({ contestant }) => {
+      refreshRoom();
+      addEventLog('🎉 ' + contestant.name + ' 加入比赛');
+    });
+
+    socket.on('contestant-left', () => {
+      refreshRoom();
+    });
+
+    socket.on('contestant-rejoined', ({ name }) => {
+      refreshRoom();
+      addEventLog('🔄 ' + name + ' 重新接入');
+    });
+
+    socket.on('contestant-status', ({ contestantId, connected }) => {
+      const dots = $$('.s-card .status-dot');
+      $$('.s-card').forEach(card => {
+        if (card.dataset.id === contestantId) {
+          const dot = card.querySelector('.status-dot');
+          if (dot) dot.className = 'status-dot ' + (connected ? 'online' : 'offline');
+          const statusText = card.querySelector('.s-status');
+          if (statusText) statusText.innerHTML = (connected ? '● 在线' : '○ 离线');
+        }
+      });
+    });
+
+    socket.on('host-disconnected', () => {
+      $('#warningBanner').classList.remove('hidden');
+      setTimeout(() => $('#warningBanner').classList.add('hidden'), 5000);
+      addEventLog('⚠️ 主持人已断开连接');
+      // 回到空闲状态
+      currentState = 'idle';
+      currentBuzzer = null;
+      updateStatusUI('idle', null, 0);
+      updateTimer(null);
+      clearHighlights();
+    });
+
+    // 断线重连
+    socket.on('connect', () => {
+      if (roomCode) {
+        socket.emit('join-screen', { roomCode }, (res) => {
+          if (res.ok) {
+            showToast('🔗 已重连');
+            const room = res.room;
+            contestants = room.contestants || [];
+            currentState = room.state || 'idle';
+            currentBuzzer = room.currentBuzzer;
+            currentRound = room.round || 0;
+            $('#roundLabel').textContent = '第 ' + currentRound + ' 题';
+            renderCards();
+            renderRanking();
+            updateStatusUI(currentState, currentBuzzer, room.timerRemaining);
+            if (currentState === 'open' && room.timerRemaining > 0) {
+              updateTimer(room.timerRemaining);
+            }
+            addEventLog('🔗 已重新连接');
+          }
+        });
+      }
+    });
+
+    // ======== UI 函数 ========
+
+    function updateStatusUI(state, winner, remaining) {
+      const el = $('#statusBigText');
+      const timerEl = $('#timerBig');
+
+      switch (state) {
+        case 'open':
+          el.textContent = '🔴 抢答中！';
+          el.className = 'status-big-text open';
+          break;
+        case 'locked':
+          el.textContent = '🏆 ' + (winner?.name || '选手') + ' 抢到！等待判定…';
+          el.className = 'status-big-text locked';
+          timerEl.className = 'timer-big idle';
+          timerEl.textContent = '--';
+          break;
+        case 'resolved':
+          el.textContent = '⏳ 等待下一题...';
+          el.className = 'status-big-text resolved';
+          timerEl.className = 'timer-big idle';
+          timerEl.textContent = '--';
+          break;
+        default:
+          el.textContent = '⏸️ 等待开始抢答';
+          el.className = 'status-big-text idle';
+          timerEl.className = 'timer-big idle';
+          timerEl.textContent = '--';
+          break;
+      }
+
+      // 轮次
+      if (state === 'open' || state === 'locked' || state === 'resolved') {
+        // 不在此处更新轮次，round 由事件携带或 refreshRoom 更新
+      }
+    }
+
+    function updateTimer(remaining) {
+      const el = $('#timerBig');
+      if (remaining === undefined || remaining === null) {
+        el.textContent = '--';
+        el.className = 'timer-big idle';
+        return;
+      }
+      el.textContent = remaining;
+      el.className = remaining <= 3 ? 'timer-big warning' : 'timer-big running';
+    }
+
+    function renderCards() {
+      const container = $('#cardsContainer');
+      if (!contestants || contestants.length === 0) {
+        container.innerHTML = '<div class="empty-hint">暂无选手加入</div>';
+        return;
+      }
+
+      // 按分数从高到低排序
+      const sorted = [...contestants].sort((a, b) => b.score - a.score);
+
+      container.innerHTML = sorted.map(c => {
+        const isBuzzed = currentBuzzer && c.id === currentBuzzer.contestantId;
+        return `
+          <div class="s-card ${isBuzzed ? 'buzzed' : ''}" data-id="${c.id}">
+            <div class="s-name" style="color:${c.color}">${c.name}</div>
+            <div class="s-score" style="color:${c.color}">${c.score}</div>
+            <div class="s-status">
+              <span class="status-dot ${c.connected ? 'online' : 'offline'}"></span>
+              ${c.connected ? '● 在线' : '○ 离线'}
+            </div>
+            <div class="buzz-badge">🏆 抢到</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function highlightCard(contestantId, type) {
+      const cards = $$('.s-card');
+      cards.forEach(c => {
+        c.classList.remove('buzzed', 'correct', 'wrong');
+        if (c.dataset.id === contestantId) {
+          c.classList.add(type);
+        }
+      });
+    }
+
+    function clearHighlights() {
+      $$('.s-card').forEach(c => c.classList.remove('buzzed', 'correct', 'wrong'));
+    }
+
+    function renderRanking() {
+      const bar = $('#rankingBar');
+      const inner = $('#rankingInner');
+      if (!contestants || contestants.length < 2) {
+        bar.classList.add('hidden');
+        return;
+      }
+
+      bar.classList.remove('hidden');
+      const sorted = [...contestants].sort((a, b) => b.score - a.score);
+      const medals = ['🥇', '🥈', '🥉'];
+
+      const newPrev = {};
+      inner.innerHTML = sorted.slice(0, 3).map((c, i) => {
+        newPrev[c.id] = i + 1;
+        return `
+          <div class="rank-item">
+            <span class="r-medal">${medals[i]}</span>
+            <span class="r-name" style="color:${c.color}">${c.name}</span>
+            <span class="r-score" style="color:${c.color}">${c.score}</span>
+          </div>
+        `;
+      }).join('');
+      prevRankings = newPrev;
+
+      // 如果超过3人，显示"…"
+      if (sorted.length > 3) {
+        const more = document.createElement('div');
+        more.className = 'rank-item';
+        more.style.background = 'transparent';
+        more.innerHTML = `<span style="color:var(--text-secondary);font-size:18px;">… 共 ${sorted.length} 人</span>`;
+        inner.appendChild(more);
+      }
+    }
+
+    function addEventLog(text, highlight) {
+      eventEntries.push({ text, highlight: !!highlight });
+      if (eventEntries.length > 20) eventEntries.shift();
+
+      const log = $('#eventLog');
+      log.innerHTML = eventEntries.map(e =>
+        `<span class="entry ${e.highlight ? 'highlight' : ''}">${e.text}</span>`
+      ).join('');
+      log.scrollLeft = log.scrollWidth;
+    }
+
+    function refreshRoom() {
+      if (!roomCode) return;
+      socket.emit('get-room', { roomCode }, (res) => {
+        if (!res.ok) return;
+        contestants = res.room.contestants || [];
+        currentRound = res.room.round || 0;
+        $('#roundLabel').textContent = '第 ' + currentRound + ' 题';
+        renderCards();
+        renderRanking();
+      });
+    }
+  </script>
+</body>
+</html>

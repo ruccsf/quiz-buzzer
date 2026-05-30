@@ -302,6 +302,63 @@
     .score-row .remove-btn:hover { background: rgba(255, 23, 68, 0.3); color: var(--accent-red); }
     .score-row .remove-btn:active { transform: scale(0.9); }
 
+    /* ---- 排名模块 ---- */
+    .ranking-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .ranking-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      transition: all 0.3s ease;
+    }
+    .ranking-item .rank {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-secondary);
+    }
+    .ranking-item .rank.gold { background: linear-gradient(135deg, #ffd700, #ffab00); color: #000; }
+    .ranking-item .rank.silver { background: linear-gradient(135deg, #c0c0c0, #9e9e9e); color: #000; }
+    .ranking-item .rank.bronze { background: linear-gradient(135deg, #cd7f32, #a0522d); color: #fff; }
+    .ranking-item .rname {
+      flex: 1;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .ranking-item .rscore {
+      font-size: 18px;
+      font-weight: 800;
+      min-width: 40px;
+      text-align: right;
+    }
+    .ranking-item .rank-change {
+      font-size: 12px;
+      min-width: 24px;
+      text-align: center;
+    }
+    .ranking-item .rank-change.up { color: var(--accent-green); }
+    .ranking-item .rank-change.down { color: var(--accent-red); }
+    .ranking-item .rank-change.same { color: var(--text-secondary); }
+    .ranking-empty {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+      padding: 12px;
+    }
+
     .history-log {
       background: var(--bg-primary);
       border-radius: var(--radius-sm);
@@ -407,8 +464,8 @@
     </div>
     <div class="card" style="animation: slideUp 0.5s ease;">
       <div class="form-group">
-        <label>主持人称呼</label>
-        <input class="form-input" id="hostNameInput" type="text" placeholder="输入你的名字" maxlength="10">
+        <label>比赛名称</label>
+        <input class="form-input" id="gameNameInput" type="text" placeholder="输入比赛名称" maxlength="10">
       </div>
       <button class="btn btn-primary" id="createRoomBtn">🎯 创建房间</button>
     </div>
@@ -468,6 +525,11 @@
         <div style="color: var(--text-secondary); font-size: 13px; text-align: center;">暂无选手</div>
       </div>
 
+      <div class="section-label">🏆 当前排名</div>
+      <div class="ranking-list" id="rankingList">
+        <div class="ranking-empty">暂无选手</div>
+      </div>
+
       <div class="section-label">抢答记录</div>
       <div class="history-log" id="historyLog">
         <div class="entry" style="color: var(--text-secondary);">暂无记录</div>
@@ -488,11 +550,11 @@
 
     // ---- 创建房间 ----
     $('#createRoomBtn').addEventListener('click', () => {
-      const hostName = $('#hostNameInput').value.trim() || '主持人';
+      const gameName = $('#gameNameInput').value.trim() || '知识竞赛';
       $('#createRoomBtn').disabled = true;
       $('#createRoomBtn').textContent = '创建中...';
 
-      socket.emit('create-room', { hostName }, (res) => {
+      socket.emit('create-room', { gameName }, (res) => {
         if (!res.ok) {
           $('#createRoomBtn').disabled = false;
           $('#createRoomBtn').textContent = '🎯 创建房间';
@@ -517,7 +579,7 @@
           $('#dashboardView').classList.remove('hidden');
 
           // 更新房间信息
-          $('#roomTitle').textContent = `🎤 ${hostName} 的知识竞赛`;
+          $('#roomTitle').textContent = `🎤 ${gameName}`;
           $('#roomCodeDisplay').textContent = '房间: ' + roomCode;
 
           // 设置 URL（不刷新页面）
@@ -537,7 +599,7 @@
             <div class="room-list-item" data-code="${r.id}">
               <div class="info-block">
                 <div class="code">${r.id}</div>
-                <div class="host">🎤 ${r.hostName} · ${r.playerCount} 位选手</div>
+                <div class="host">🏆 ${r.gameName} · ${r.playerCount} 位选手</div>
               </div>
               <div class="room-list-actions">
                 <button class="btn-sm enter-btn">进入</button>
@@ -584,12 +646,13 @@
           if (cr.ok) {
             $('#createView').classList.add('hidden');
             $('#dashboardView').classList.remove('hidden');
-            $('#roomTitle').textContent = `🎤 ${res.room.hostName} 的知识竞赛`;
+            $('#roomTitle').textContent = `🎤 ${res.room.gameName}`;
             $('#roomCodeDisplay').textContent = '房间: ' + roomCode;
             history.replaceState(null, '', '/host?room=' + roomCode);
             showToast('🔗 已重新进入房间', 'success');
             renderContestants();
             renderScoreList();
+            renderRanking();
           } else {
             showToast('认领失败: ' + cr.error);
           }
@@ -605,7 +668,7 @@
     }
 
     // ---- 主持人名称回车 ----
-    $('#hostNameInput').addEventListener('keydown', (e) => {
+    $('#gameNameInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') $('#createRoomBtn').click();
     });
 
@@ -676,6 +739,7 @@
             // 刷新所有信息
             renderContestants();
             renderScoreList();
+            renderRanking();
           } else {
             showToast('⚠️ 房间连接失败，可能需要重新创建');
           }
@@ -688,17 +752,20 @@
     socket.on('contestant-joined', ({ contestant }) => {
       renderContestants();
       renderScoreList();
+      renderRanking();
       showToast(`🎉 ${contestant.name} 加入！`, 'success');
     });
 
     socket.on('contestant-left', () => {
       renderContestants();
       renderScoreList();
+      renderRanking();
     });
 
     socket.on('contestant-rejoined', ({ name }) => {
       renderContestants();
       renderScoreList();
+      renderRanking();
       showToast(`🔄 ${name} 重新接入`, 'success');
     });
 
@@ -719,6 +786,7 @@
       });
       // 也更新控制面板的选手列表
       renderScoreList();
+      renderRanking();
     });
 
     socket.on('buzzer-state', ({ state, winner, remaining }) => {
@@ -738,6 +806,7 @@
     socket.on('score-update', () => {
       renderContestants();
       renderScoreList();
+      renderRanking();
     });
 
     socket.on('timer-tick', ({ remaining }) => {
@@ -864,6 +933,54 @@
             }
           });
         });
+      });
+    }
+
+    // ---- 排名缓存（用于判断升降） ----
+    let prevRankings = {};
+
+    function renderRanking() {
+      if (!roomCode) return;
+      socket.emit('get-room', { roomCode }, (res) => {
+        if (!res.ok) return;
+        const ranked = [...res.room.contestants].sort((a, b) => b.score - a.score);
+        const list = $('#rankingList');
+        if (!ranked || ranked.length === 0) {
+          list.innerHTML = '<div class="ranking-empty">暂无选手</div>';
+          return;
+        }
+
+        // 计算排名变化
+        const newPrev = {};
+        list.innerHTML = ranked.map((c, i) => {
+          const rankNum = i + 1;
+          let rankClass = '';
+          if (rankNum === 1) rankClass = 'gold';
+          else if (rankNum === 2) rankClass = 'silver';
+          else if (rankNum === 3) rankClass = 'bronze';
+
+          let rankEmoji = rankNum === 1 ? '🥇' : rankNum === 2 ? '🥈' : rankNum === 3 ? '🥉' : rankNum;
+
+          // 排名变化箭头
+          const prevRank = prevRankings[c.id];
+          newPrev[c.id] = rankNum;
+          let changeHtml = '';
+          if (prevRank !== undefined) {
+            if (prevRank > rankNum) changeHtml = '<span class="rank-change up">↑</span>';
+            else if (prevRank < rankNum) changeHtml = '<span class="rank-change down">↓</span>';
+            else changeHtml = '<span class="rank-change same">−</span>';
+          }
+
+          return `
+            <div class="ranking-item">
+              <div class="rank ${rankClass}">${rankEmoji}</div>
+              <span class="rname" style="color:${c.color}">${c.name}</span>
+              <span class="rscore" style="color:${c.color}">${c.score}</span>
+              ${changeHtml}
+            </div>
+          `;
+        }).join('');
+        prevRankings = newPrev;
       });
     }
 

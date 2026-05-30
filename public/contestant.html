@@ -208,7 +208,7 @@
     <!-- 头部 -->
     <div class="contestant-header">
       <div class="left-group">
-        <a class="back-link" href="/">← 返回</a>
+        <a class="back-link" href="/player">← 返回</a>
         <div class="room-badge" id="roomBadge">——</div>
       </div>
       <div class="contestant-name-display" id="nameDisplay">——</div>
@@ -255,7 +255,7 @@
           $('#nameDisplay').style.color = me.color;
           $('#scoreDisplay').textContent = me.score;
         }
-        $('#hostInfo').textContent = `主持人: ${res.room.hostName}`;
+        $('#hostInfo').textContent = `🏆 ${res.room.gameName}`;
         updateUIState(res.room.state, res.room.currentBuzzer);
       } else {
         showToast(res.error || '连接失败，请重新扫码加入');
@@ -273,7 +273,7 @@
               $('#nameDisplay').style.color = me.color;
               $('#scoreDisplay').textContent = me.score;
             }
-            $('#hostInfo').textContent = `主持人: ${res.room.hostName}`;
+            $('#hostInfo').textContent = `🏆 ${res.room.gameName}`;
             updateUIState(res.room.state, res.room.currentBuzzer);
             showToast('🔗 已重新连接', 'success');
           }
