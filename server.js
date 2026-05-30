@@ -627,6 +627,12 @@ io.on('connection', (socket) => {
 
         // 选手断开 — 通知 host 更新连接状态
         if (currentContestantId) {
+          // 清除 socketId，使 get-room 能准确判断离线
+          // 只清除当 socketId 仍指向本 socket 的情况（防止新连接覆盖后被错误清空）
+          const contestant = room.contestants.find(c => c.id === currentContestantId && c.socketId === socket.id);
+          if (contestant) {
+            contestant.socketId = null;
+          }
           io.to(currentRoom).emit('contestant-status', { contestantId: currentContestantId, connected: false });
           // 如果正在抢答，重置
           if (room.currentBuzzer && room.currentBuzzer.contestantId === currentContestantId) {
