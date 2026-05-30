@@ -1,5 +1,7 @@
 // Socket.IO 客户端封装
-const socket = io();
+const socket = io({
+  transports: ['websocket'],  // 仅使用 WebSocket，禁用 HTTP long-polling
+});
 
 // Toast 通知 — 左下角显示，3.5秒后自动淡出并彻底移除
 let toastTimer = null;
