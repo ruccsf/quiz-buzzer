@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>加入抢答 - 知识竞赛</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div style="text-align:center; margin-bottom: 40px; animation: fadeIn 0.6s ease;">
+      <div style="font-size: 48px; line-height: 1; margin-bottom: 8px;">📱</div>
+      <h1 style="font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #4a9eff, #7c4dff, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">选手加入</h1>
+      <p style="color: var(--text-secondary); margin-top: 8px; font-size: 15px;">输入房间号和昵称，加入抢答</p>
+    </div>
+
+    <!-- 加入房间 -->
+    <div class="card" style="animation: slideUp 0.5s ease; max-width: 420px;">
+      <div class="form-group">
+        <label>房间号</label>
+        <input class="form-input code-input" id="roomCode" type="text" placeholder="XXXX" maxlength="4" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>你的昵称</label>
+        <input class="form-input" id="contestantName" type="text" placeholder="输入选手名称" maxlength="10">
+      </div>
+      <button class="btn btn-primary" id="joinRoomBtn">加入房间</button>
+    </div>
+
+    <p style="color: var(--text-secondary); font-size: 13px; margin-top: 24px;">
+      🎤 主持人请 <a href="/host" style="color: var(--accent-blue);">点击此处创建房间</a>
+    </p>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/socket-client.js"></script>
+  <script>
+    // 房间号自动大写
+    const roomCodeInput = $('#roomCode');
+    roomCodeInput.addEventListener('input', () => {
+      roomCodeInput.value = roomCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+
+    // 回车键快速操作
+    $('#contestantName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#joinRoomBtn').click();
+    });
+    roomCodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#joinRoomBtn').click();
+    });
+
+    // 加入房间
+    $('#joinRoomBtn').addEventListener('click', () => {
+      const roomCode = $('#roomCode').value.trim();
+      const name = $('#contestantName').value.trim();
+      if (!roomCode) return showToast('请输入房间号');
+      if (!name) return showToast('请输入你的昵称');
+      if (roomCode.length !== 4) return showToast('房间号应为4位');
+
+      $('#joinRoomBtn').disabled = true;
+      $('#joinRoomBtn').textContent = '加入中...';
+
+      socket.emit('join-room', { roomCode, name }, (res) => {
+        $('#joinRoomBtn').disabled = false;
+        $('#joinRoomBtn').textContent = '加入房间';
+        if (res.ok) {
+          window.location.href = `/contestant?room=${roomCode}&id=${res.contestantId}`;
+        } else {
+          showToast(res.error);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

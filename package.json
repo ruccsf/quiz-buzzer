@@ -1,0 +1,17 @@
+{
+  "name": "quiz-buzzer",
+  "version": "1.0.0",
+  "description": "电视知识竞赛抢答系统 - 主持人控制大屏，选手用手机抢答",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
+  }
+}

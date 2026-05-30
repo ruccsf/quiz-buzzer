@@ -1,0 +1,607 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+// 路由：无后缀页面路径 → HTML 文件
+app.get(['/host', '/contestant'], (req, res) => {
+  res.sendFile(__dirname + '/public' + req.path + '.html');
+});
+
+app.use(express.static('public'));
+
+// ======== 持久化存储 ========
+const DATA_FILE = path.join(__dirname, 'rooms-data.json');
+let savePending = false;
+
+function saveRooms() {
+  // 去抖：如果已经有写入了，不重复排队
+  if (savePending) return;
+  savePending = true;
+
+  setImmediate(() => {
+    savePending = false;
+    try {
+      // 只保存可序列化的数据，去掉运行时状态
+      const data = {};
+      for (const [code, room] of Object.entries(rooms)) {
+        data[code] = {
+          id: room.id,
+          hostName: room.hostName,
+          hostSocketId: null,          // 运行时状态，不持久化
+          contestants: room.contestants.map(c => ({
+            id: c.id,
+            name: c.name,
+            score: c.score,
+            color: c.color,
+            socketId: null,            // 运行时状态，不持久化
+          })),
+          state: 'idle',               // 重启后一律回到 idle
+          timer: room.timer,
+          timerRemaining: 0,
+          currentBuzzer: null,
+          buzzHistory: room.buzzHistory,
+          round: room.round,
+        };
+      }
+      fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch (err) {
+      console.error('保存房间数据失败:', err.message);
+    }
+  });
+}
+
+function loadRooms() {
+  try {
+    if (!fs.existsSync(DATA_FILE)) return;
+    const raw = fs.readFileSync(DATA_FILE, 'utf8');
+    const data = JSON.parse(raw);
+    let loaded = 0;
+    for (const [code, saved] of Object.entries(data)) {
+      rooms[code] = {
+        ...saved,
+        hostSocketId: null,
+        timerInterval: null,
+        // 确保 contestants 的 socketId 是 null
+        contestants: (saved.contestants || []).map(c => ({ ...c, socketId: null })),
+      };
+      loaded++;
+    }
+    if (loaded > 0) {
+      console.log(`📂 已恢复 ${loaded} 个房间的数据`);
+    }
+  } catch (err) {
+    console.error('加载房间数据失败:', err.message);
+  }
+}
+
+// ======== 游戏状态 ========
+const rooms = {};
+
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code;
+  do {
+    code = '';
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  } while (rooms[code]);
+  return code;
+}
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+const COLORS = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#A8E6CF', '#FF8A5C', '#7C4DFF', '#00BCD4', '#FF4081'];
+
+function createRoom(hostName) {
+  const code = generateRoomCode();
+  rooms[code] = {
+    id: code,
+    hostName,
+    hostSocketId: null,
+    contestants: [],
+    state: 'idle',       // idle | open | locked | resolved
+    timer: 10,
+    timerInterval: null,
+    timerRemaining: 0,
+    currentBuzzer: null,
+    buzzHistory: [],
+    round: 0,
+  };
+  saveRooms();  // 立即保存
+  return rooms[code];
+}
+
+function getRoom(code) {
+  return rooms[code];
+}
+
+function deleteRoom(code) {
+  const room = rooms[code];
+  if (room) {
+    clearInterval(room.timerInterval);
+    delete rooms[code];
+    saveRooms();
+  }
+}
+
+// 重启后重建房间列表时，清空过期房间（超过24小时）
+function cleanupOldRooms() {
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  for (const [code, room] of Object.entries(rooms)) {
+    // 如果房间没选手、没主持人，且最晚一条记录超过24小时，清理
+    if (room.contestants.length === 0 && !room.hostSocketId) {
+      const lastEntry = room.buzzHistory?.[room.buzzHistory.length - 1];
+      if (lastEntry && now - lastEntry.timestamp > day) {
+        delete rooms[code];
+      }
+    }
+  }
+}
+
+// ======== Socket.IO ========
+io.on('connection', (socket) => {
+  let currentRoom = null;
+  let currentContestantId = null;
+
+  // ---- 列出活跃房间（host 页面显示全部，首页只显示可加入的） ----
+  socket.on('list-rooms', (data, callback) => {
+    if (typeof callback !== 'function') callback = data;
+    const list = Object.values(rooms)
+      .map(r => ({ id: r.id, hostName: r.hostName, playerCount: r.contestants.length }));
+    typeof callback === 'function' && callback({ ok: true, rooms: list });
+  });
+
+  // ---- 主持人删除房间 ----
+  socket.on('delete-room', ({ roomCode }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      // 允许删除条件：是当前主持人，或者房间没有主持人认领（重启后）
+      if (room.hostSocketId && socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '你不是该房间的主持人' });
+      io.to(roomCode).emit('host-disconnected');
+      clearInterval(room.timerInterval);
+      deleteRoom(roomCode);
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 创建房间 ----
+  socket.on('create-room', ({ hostName }, callback) => {
+    try {
+      const room = createRoom(hostName || '主持人');
+      callback({ ok: true, roomCode: room.id });
+    } catch (err) {
+      callback({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 主持人认领房间 ----
+  socket.on('claim-host', ({ roomCode }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      room.hostSocketId = socket.id;
+      socket.join(roomCode);
+      currentRoom = roomCode;
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 选手重新连接（页面刷新/服务器重启后，用 contestantId 回连） ----
+  socket.on('rejoin-room', ({ roomCode, contestantId }, callback) => {
+    try {
+      const code = roomCode.toUpperCase().trim();
+      const room = getRoom(code);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+
+      const contestant = room.contestants.find(c => c.id === contestantId);
+      if (!contestant) return callback?.({ ok: false, error: '选手不存在，请重新加入' });
+
+      // 更新 Socket 关联
+      contestant.socketId = socket.id;
+      socket.join(code);
+      currentRoom = code;
+      currentContestantId = contestant.id;
+
+      // 通知房间选手重新上线（在线状态）
+      io.to(code).emit('contestant-status', { contestantId: contestant.id, connected: true });
+      io.to(code).emit('contestant-rejoined', { contestantId: contestant.id, name: contestant.name });
+
+      callback?.({ ok: true, room: {
+        id: room.id,
+        hostName: room.hostName,
+        contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color })),
+        state: room.state,
+      }});
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 加入房间（同名选手自动重连到已有身份，不重复创建） ----
+  socket.on('join-room', ({ roomCode, name }, callback) => {
+    try {
+      const code = roomCode.toUpperCase().trim();
+      const room = getRoom(code);
+      if (!room) return callback({ ok: false, error: '房间不存在' });
+      if (!name || !name.trim()) return callback({ ok: false, error: '请输入名字' });
+
+      const trimmedName = name.trim().slice(0, 10);
+
+      // 检查是否有同名选手 — 有则直接重连（刷新/重新扫码不丢分数）
+      const existing = room.contestants.find(c => c.name === trimmedName);
+      if (existing) {
+        existing.socketId = socket.id;
+        socket.join(code);
+        currentRoom = code;
+        currentContestantId = existing.id;
+        io.to(code).emit('contestant-status', { contestantId: existing.id, connected: true });
+        io.to(code).emit('contestant-rejoined', { contestantId: existing.id, name: existing.name });
+        io.to(code).emit('score-update', { contestants: room.contestants });
+        callback({
+          ok: true,
+          contestantId: existing.id,
+          reconnected: true,
+          room: {
+            id: room.id,
+            hostName: room.hostName,
+            contestants: room.contestants,
+            state: room.state,
+          },
+        });
+        return;
+      }
+
+      if (room.contestants.length >= 8) return callback({ ok: false, error: '房间已满（最多8人）' });
+
+      const contestant = {
+        id: generateId(),
+        name: trimmedName,
+        score: 0,
+        color: COLORS[room.contestants.length % COLORS.length],
+        socketId: socket.id,
+      };
+
+      room.contestants.push(contestant);
+      socket.join(code);
+      currentRoom = code;
+      currentContestantId = contestant.id;
+
+      // 通知房间所有人
+      io.to(code).emit('contestant-joined', { contestant });
+      io.to(code).emit('contestant-status', { contestantId: contestant.id, connected: true });
+      io.to(code).emit('score-update', { contestants: room.contestants });
+      saveRooms();
+
+      callback({
+        ok: true,
+        contestantId: contestant.id,
+        reconnected: false,
+        room: {
+          id: room.id,
+          hostName: room.hostName,
+          contestants: room.contestants,
+          state: room.state,
+        },
+      });
+    } catch (err) {
+      callback({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 主持人开始抢答 ----
+  socket.on('start-buzzer', ({ roomCode, timer }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      if (socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '非主持人' });
+      if (room.state !== 'idle' && room.state !== 'resolved') return callback?.({ ok: false, error: '当前状态不允许开始' });
+
+      room.state = 'open';
+      room.round++;
+      room.timerRemaining = timer || 10;
+      room.currentBuzzer = null;
+      saveRooms();
+
+      // 开始倒计时
+      clearInterval(room.timerInterval);
+      room.timerInterval = setInterval(() => {
+        room.timerRemaining--;
+        io.to(roomCode).emit('timer-tick', { remaining: room.timerRemaining });
+        if (room.timerRemaining <= 0) {
+          clearInterval(room.timerInterval);
+          room.timerInterval = null;
+          if (room.state === 'open') {
+            room.state = 'idle';
+            io.to(roomCode).emit('buzzer-state', {
+              state: 'idle',
+              winner: null,
+              remaining: 0,
+            });
+            saveRooms();
+          }
+        }
+      }, 1000);
+
+      io.to(roomCode).emit('buzzer-state', {
+        state: 'open',
+        winner: null,
+        remaining: room.timerRemaining,
+        round: room.round,
+      });
+
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 选手抢答 ----
+  socket.on('buzz', ({ roomCode }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      if (room.state !== 'open') return callback?.({ ok: false, error: '当前不可抢答' });
+
+      const contestant = room.contestants.find(c => c.socketId === socket.id);
+      if (!contestant) return callback?.({ ok: false, error: '你不是本房间选手' });
+
+      if (room.currentBuzzer) {
+        return callback?.({ ok: false, error: '已被抢答' });
+      }
+
+      // 抢答成功！
+      room.currentBuzzer = {
+        contestantId: contestant.id,
+        name: contestant.name,
+        color: contestant.color,
+        timestamp: Date.now(),
+      };
+
+      room.buzzHistory.push({
+        round: room.round,
+        contestantId: contestant.id,
+        name: contestant.name,
+        timestamp: room.currentBuzzer.timestamp,
+      });
+
+      room.state = 'locked';
+      clearInterval(room.timerInterval);
+      room.timerInterval = null;
+      saveRooms();
+
+      io.to(roomCode).emit('buzz-result', {
+        winnerId: contestant.id,
+        winnerName: contestant.name,
+        winnerColor: contestant.color,
+      });
+
+      io.to(roomCode).emit('buzzer-state', {
+        state: 'locked',
+        winner: { id: contestant.id, name: contestant.name, color: contestant.color },
+        remaining: room.timerRemaining,
+      });
+
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 主持人判对 ----
+  socket.on('judge-correct', ({ roomCode, points }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      if (socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '非主持人' });
+      if (room.state !== 'locked') return callback?.({ ok: false, error: '当前状态不可判分' });
+
+      const buzzer = room.currentBuzzer;
+      if (!buzzer) return callback?.({ ok: false, error: '无人抢答' });
+
+      const delta = points || 10;
+      const contestant = room.contestants.find(c => c.id === buzzer.contestantId);
+      if (contestant) {
+        contestant.score += delta;
+      }
+
+      room.state = 'resolved';
+      io.to(roomCode).emit('judge-result', {
+        correct: true,
+        contestantId: buzzer.contestantId,
+        delta,
+        newScore: contestant?.score || 0,
+      });
+      io.to(roomCode).emit('score-update', { contestants: room.contestants });
+      saveRooms();
+
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 主持人判错 ----
+  socket.on('judge-wrong', ({ roomCode, points }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      if (socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '非主持人' });
+      if (room.state !== 'locked') return callback?.({ ok: false, error: '当前状态不可判分' });
+
+      const buzzer = room.currentBuzzer;
+      if (!buzzer) return callback?.({ ok: false, error: '无人抢答' });
+
+      const delta = points || -5;
+      const contestant = room.contestants.find(c => c.id === buzzer.contestantId);
+      if (contestant) {
+        contestant.score += delta;
+      }
+
+      room.state = 'resolved';
+      io.to(roomCode).emit('judge-result', {
+        correct: false,
+        contestantId: buzzer.contestantId,
+        delta,
+        newScore: contestant?.score || 0,
+      });
+      io.to(roomCode).emit('score-update', { contestants: room.contestants });
+      saveRooms();
+
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 下一题 / 重置本轮 ----
+  socket.on('next-question', ({ roomCode }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      if (socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '非主持人' });
+
+      room.state = 'idle';
+      room.currentBuzzer = null;
+      clearInterval(room.timerInterval);
+      room.timerInterval = null;
+      saveRooms();
+
+      io.to(roomCode).emit('buzzer-state', {
+        state: 'idle',
+        winner: null,
+        remaining: 0,
+      });
+
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 手动调分 ----
+  socket.on('adjust-score', ({ roomCode, contestantId, delta }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      if (socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '非主持人' });
+
+      const contestant = room.contestants.find(c => c.id === contestantId);
+      if (!contestant) return callback?.({ ok: false, error: '选手不存在' });
+
+      contestant.score += delta;
+      io.to(roomCode).emit('score-update', { contestants: room.contestants });
+      saveRooms();
+
+      callback?.({ ok: true, newScore: contestant.score });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 主持人移除选手 ----
+  socket.on('remove-contestant', ({ roomCode, contestantId }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      if (socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '非主持人' });
+
+      const idx = room.contestants.findIndex(c => c.id === contestantId);
+      if (idx === -1) return callback?.({ ok: false, error: '选手不存在' });
+
+      const removed = room.contestants.splice(idx, 1)[0];
+      io.to(roomCode).emit('contestant-left', { contestantId: removed.id });
+      io.to(roomCode).emit('score-update', { contestants: room.contestants });
+
+      if (room.currentBuzzer && room.currentBuzzer.contestantId === removed.id) {
+        room.state = 'idle';
+        room.currentBuzzer = null;
+        clearInterval(room.timerInterval);
+        room.timerInterval = null;
+        io.to(roomCode).emit('buzzer-state', { state: 'idle', winner: null, remaining: 0 });
+      }
+      saveRooms();
+
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
+  // ---- 获取房间信息 ----
+  socket.on('get-room', ({ roomCode }, callback) => {
+    const room = getRoom(roomCode);
+    if (!room) return callback?.({ ok: false, error: '房间不存在' });
+    callback({
+      ok: true,
+      room: {
+        id: room.id,
+        hostName: room.hostName,
+        contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color, connected: c.socketId !== null })),
+        state: room.state,
+        timer: room.timer,
+        currentBuzzer: room.currentBuzzer,
+        round: room.round,
+      },
+    });
+  });
+
+  // ---- 断开连接 ----
+  socket.on('disconnect', () => {
+    if (currentRoom) {
+      const room = getRoom(currentRoom);
+      if (room) {
+        if (socket.id === room.hostSocketId) {
+          // 主持人断开，清除主持权，但不删除房间
+          io.to(currentRoom).emit('host-disconnected');
+          clearInterval(room.timerInterval);
+          room.hostSocketId = null;
+          room.state = 'idle';
+          room.currentBuzzer = null;
+          room.timerInterval = null;
+          saveRooms();
+          return;
+        }
+
+        // 选手断开 — 通知 host 更新连接状态
+        if (currentContestantId) {
+          io.to(currentRoom).emit('contestant-status', { contestantId: currentContestantId, connected: false });
+          // 如果正在抢答，重置
+          if (room.currentBuzzer && room.currentBuzzer.contestantId === currentContestantId) {
+            room.state = 'idle';
+            room.currentBuzzer = null;
+            clearInterval(room.timerInterval);
+            room.timerInterval = null;
+            io.to(currentRoom).emit('buzzer-state', { state: 'idle', winner: null, remaining: 0 });
+            saveRooms();
+          }
+        }
+      }
+    }
+  });
+});
+
+// ======== 启动 ========
+loadRooms();
+cleanupOldRooms();
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🎯 抢答系统已启动！`);
+  console.log(`   本地访问: http://localhost:${PORT}`);
+  console.log(`   局域网访问: http://<本机IP>:${PORT}`);
+  console.log(`   数据文件: rooms-data.json`);
+  console.log(`   按 Ctrl+C 停止`);
+});

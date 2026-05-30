@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>抢答 - 选手</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ======== 选手页面 ======== */
+    body {
+      background: linear-gradient(180deg, #0a0e27 0%, #141838 100%);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .contestant-view {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 24px 32px;
+      text-align: center;
+    }
+
+    /* ---- 头部（固定高度，不参与伸缩） ---- */
+    .contestant-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .contestant-header .left-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .contestant-header .back-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 12px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .contestant-header .back-link:hover { color: var(--text-primary); }
+
+    .contestant-header .room-badge {
+      font-size: 14px;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .contestant-name-display {
+      font-size: 20px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      white-space: nowrap;
+    }
+
+    /* ---- 中间弹性区域：垂直居中所有内容 ---- */
+    .buzz-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      gap: 10px;
+    }
+
+    /* ---- 状态提示 ---- */
+    .status-hint {
+      font-size: 16px;
+      color: var(--text-secondary);
+      min-height: 26px;
+      transition: all 0.3s;
+    }
+    .status-hint.can-buzz {
+      color: var(--accent-yellow);
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    /* ---- 倒计时（独立展示，不与按钮粘连） ---- */
+    .timer-badge {
+      font-size: 56px;
+      font-weight: 800;
+      min-height: 68px;
+      line-height: 1;
+      transition: all 0.3s;
+    }
+    .timer-badge.running { color: var(--accent-yellow); }
+    .timer-badge.warning { color: var(--accent-red); animation: pulse 0.5s infinite; }
+    .timer-badge.hidden { visibility: hidden; }
+
+    /* ---- 抢答大按钮 ---- */
+    .buzz-btn {
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(145deg, #555, #333);
+      color: #888;
+      font-size: 28px;
+      font-weight: 800;
+      cursor: default;
+      transition: all 0.25s ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4), inset 0 -4px 12px rgba(0,0,0,0.3), inset 0 4px 12px rgba(255,255,255,0.05);
+      position: relative;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      touch-action: manipulation;
+      flex-shrink: 0;
+    }
+
+    .buzz-btn::after {
+      content: '';
+      position: absolute;
+      top: -4px; left: -4px; right: -4px; bottom: -4px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .buzz-btn.ready {
+      background: linear-gradient(145deg, #ff1744, #d50000);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(255,23,68,0.5), inset 0 -4px 12px rgba(0,0,0,0.2);
+      animation: pulse 1.5s infinite;
+    }
+    .buzz-btn.ready:active {
+      transform: scale(0.92);
+      box-shadow: 0 4px 16px rgba(255,23,68,0.6), inset 0 -4px 12px rgba(0,0,0,0.3);
+    }
+    .buzz-btn.ready::after { border-color: rgba(255,23,68,0.4); animation: borderPulse 1.5s infinite; }
+
+    .buzz-btn.buzzed {
+      background: linear-gradient(145deg, #ffd600, #ffab00);
+      color: #000;
+      box-shadow: 0 8px 40px rgba(255,214,0,0.5), inset 0 -4px 12px rgba(0,0,0,0.15);
+      animation: glow 1s infinite;
+    }
+    .buzz-btn.buzzed::after { border-color: rgba(255,214,0,0.6); }
+
+    .buzz-btn.correct {
+      background: linear-gradient(145deg, #00e676, #00c853);
+      color: #000;
+      box-shadow: 0 8px 40px rgba(0,230,118,0.5);
+    }
+    .buzz-btn.wrong {
+      background: linear-gradient(145deg, #888, #555);
+      color: #fff;
+      animation: shake 0.5s ease;
+    }
+
+    /* ---- 底部信息（固定，不伸缩） ---- */
+    .bottom-info {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .score-display {
+      font-size: 18px;
+      color: var(--text-secondary);
+    }
+    .score-display .pts {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .score-display .pts.flash { animation: scoreFloat 0.8s ease; }
+
+    .footer-info {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 400px) {
+      .contestant-view { padding: 12px 16px 20px; }
+      .buzz-btn { width: 180px; height: 180px; font-size: 22px; }
+      .timer-badge { font-size: 40px; min-height: 48px; }
+      .contestant-name-display { font-size: 16px; padding: 4px 10px; }
+    }
+    @media (min-width: 600px) {
+      .buzz-btn { width: 280px; height: 280px; font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="contestant-view">
+    <!-- 头部 -->
+    <div class="contestant-header">
+      <div class="left-group">
+        <a class="back-link" href="/">← 返回</a>
+        <div class="room-badge" id="roomBadge">——</div>
+      </div>
+      <div class="contestant-name-display" id="nameDisplay">——</div>
+    </div>
+
+    <!-- 中间弹性区域：倒计时 + 提示 + 按钮 垂直居中 -->
+    <div class="buzz-area">
+      <div class="timer-badge hidden" id="timerBadge">--</div>
+      <div class="status-hint" id="statusHint">连接中...</div>
+      <button class="buzz-btn" id="buzzBtn">抢答</button>
+    </div>
+
+    <!-- 底部信息 -->
+    <div class="bottom-info">
+      <div class="score-display">
+        当前得分<br>
+        <span class="pts" id="scoreDisplay">0</span>
+      </div>
+      <div class="footer-info" id="hostInfo"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/socket-client.js"></script>
+  <script>
+    // ======== 初始化 ========
+    const params = new URLSearchParams(location.search);
+    const roomCode = params.get('room') || '';
+    const contestantId = params.get('id') || '';
+
+    if (!roomCode || !contestantId) {
+      showToast('参数错误');
+      setTimeout(() => window.location.href = '/', 1500);
+    }
+
+    $('#roomBadge').textContent = '房间: ' + roomCode;
+
+    // ---- 重新连接房间 ----
+    socket.emit('rejoin-room', { roomCode, contestantId }, (res) => {
+      if (res.ok) {
+        const me = res.room.contestants.find(c => c.id === contestantId);
+        if (me) {
+          $('#nameDisplay').textContent = me.name;
+          $('#nameDisplay').style.color = me.color;
+          $('#scoreDisplay').textContent = me.score;
+        }
+        $('#hostInfo').textContent = `主持人: ${res.room.hostName}`;
+        updateUIState(res.room.state, res.room.currentBuzzer);
+      } else {
+        showToast(res.error || '连接失败，请重新扫码加入');
+      }
+    });
+
+    // ======== 断线自动重连 ========
+    socket.on('connect', () => {
+      if (roomCode && contestantId) {
+        socket.emit('rejoin-room', { roomCode, contestantId }, (res) => {
+          if (res.ok) {
+            const me = res.room.contestants.find(c => c.id === contestantId);
+            if (me) {
+              $('#nameDisplay').textContent = me.name;
+              $('#nameDisplay').style.color = me.color;
+              $('#scoreDisplay').textContent = me.score;
+            }
+            $('#hostInfo').textContent = `主持人: ${res.room.hostName}`;
+            updateUIState(res.room.state, res.room.currentBuzzer);
+            showToast('🔗 已重新连接', 'success');
+          }
+        });
+      }
+    });
+
+    // ======== Socket 事件 ========
+
+    socket.on('buzzer-state', ({ state, winner, remaining }) => {
+      updateUIState(state, winner, remaining);
+    });
+
+    socket.on('buzz-result', ({ winnerId, winnerName, winnerColor }) => {
+      const btn = $('#buzzBtn');
+      const hint = $('#statusHint');
+
+      if (winnerId === contestantId) {
+        btn.className = 'buzz-btn buzzed';
+        btn.textContent = '🏆 抢到！';
+        hint.textContent = '🎉 你抢到了！等待主持人判定...';
+        hint.style.color = '#ffd600';
+        if (navigator.vibrate) navigator.vibrate(50);
+      } else {
+        btn.className = 'buzz-btn';
+        btn.textContent = '抢答';
+        hint.textContent = `${winnerName} 抢到了`;
+        hint.style.color = 'var(--text-secondary)';
+      }
+    });
+
+    socket.on('judge-result', ({ correct, contestantId: targetId, delta, newScore }) => {
+      const btn = $('#buzzBtn');
+      const hint = $('#statusHint');
+      const scoreEl = $('#scoreDisplay');
+
+      if (targetId === contestantId) {
+        btn.className = correct ? 'buzz-btn correct' : 'buzz-btn wrong';
+        btn.textContent = correct ? '✅ 正确!' : '❌ 错误';
+
+        hint.textContent = correct
+          ? `🎉 回答正确！+${delta}分`
+          : `😅 回答错误，${delta}分`;
+        hint.style.color = correct ? 'var(--accent-green)' : 'var(--accent-red)';
+
+        scoreEl.textContent = newScore;
+        scoreEl.className = 'pts flash';
+        setTimeout(() => scoreEl.className = 'pts', 800);
+      }
+    });
+
+    socket.on('score-update', ({ contestants }) => {
+      const me = contestants.find(c => c.id === contestantId);
+      if (me) {
+        $('#scoreDisplay').textContent = me.score;
+      }
+    });
+
+    socket.on('timer-tick', ({ remaining }) => {
+      const timerEl = $('#timerBadge');
+      if (remaining > 0) {
+        timerEl.textContent = remaining;
+        timerEl.className = remaining <= 3 ? 'timer-badge warning' : 'timer-badge running';
+      }
+    });
+
+    socket.on('host-disconnected', () => {
+      $('#statusHint').textContent = '⚠️ 主持人已断开连接';
+      $('#statusHint').style.color = 'var(--accent-red)';
+      $('#buzzBtn').className = 'buzz-btn';
+      $('#buzzBtn').textContent = '抢答';
+      $('#timerBadge').className = 'timer-badge hidden';
+    });
+
+    // ======== 抢答按钮点击 ========
+    $('#buzzBtn').addEventListener('click', () => {
+      const btn = $('#buzzBtn');
+      if (!btn.classList.contains('ready')) return;
+
+      btn.classList.remove('ready');
+      btn.textContent = '⏳ 发送中...';
+      btn.style.cursor = 'default';
+
+      socket.emit('buzz', { roomCode }, (res) => {
+        if (!res.ok) {
+          btn.className = 'buzz-btn';
+          btn.textContent = '抢答';
+          if (res.error === '已被抢答') {
+            $('#statusHint').textContent = '已被其他选手抢先';
+            $('#statusHint').style.color = 'var(--text-secondary)';
+          } else {
+            showToast(res.error);
+          }
+        }
+      });
+    });
+
+    // ======== UI 状态更新 ========
+    function updateUIState(state, winner, remaining) {
+      const btn = $('#buzzBtn');
+      const hint = $('#statusHint');
+      const timerEl = $('#timerBadge');
+
+      switch (state) {
+        case 'open':
+          btn.className = 'buzz-btn ready';
+          btn.textContent = '🔴 抢答！';
+          hint.textContent = '点击按钮抢答！';
+          hint.className = 'status-hint can-buzz';
+          timerEl.className = 'timer-badge running';
+          if (remaining) timerEl.textContent = remaining;
+          break;
+
+        case 'locked':
+          if (winner && winner.id === contestantId) {
+            btn.className = 'buzz-btn buzzed';
+            btn.textContent = '🏆 抢到！';
+            hint.textContent = '🎉 你抢到了！';
+            hint.style.color = '#ffd600';
+          } else if (winner) {
+            btn.className = 'buzz-btn';
+            btn.textContent = '抢答';
+            hint.textContent = `${winner.name} 抢到了`;
+            hint.style.color = 'var(--text-secondary)';
+          }
+          timerEl.className = 'timer-badge hidden';
+          break;
+
+        case 'resolved':
+          timerEl.className = 'timer-badge hidden';
+          break;
+
+        default:
+          btn.className = 'buzz-btn';
+          btn.textContent = '抢答';
+          hint.textContent = '⏸️ 等待主持人开始...';
+          hint.className = 'status-hint';
+          hint.style.color = 'var(--text-secondary)';
+          timerEl.className = 'timer-badge hidden';
+          break;
+      }
+    }
+  </script>
+</body>
+</html>
