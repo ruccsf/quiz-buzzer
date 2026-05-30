@@ -25,16 +25,13 @@
     .screen-join-view .join-card {
       background: var(--bg-secondary);
       border-radius: var(--radius);
-      padding: 48px 40px;
       max-width: 420px;
       width: 100%;
-      text-align: center;
       box-shadow: 0 16px 64px rgba(0,0,0,0.4);
     }
-    .screen-join-view .join-card .icon { font-size: 64px; line-height: 1; margin-bottom: 16px; }
-    .screen-join-view .join-card h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-    .screen-join-view .join-card p { color: var(--text-secondary); font-size: 15px; margin-bottom: 28px; }
-    .screen-join-view .join-card .form-group { margin-bottom: 24px; }
+    .screen-join-view .join-card .icon { font-size: 48px; line-height: 1; margin-bottom: 12px; }
+    .screen-join-view .join-card .form-group { margin-bottom: 20px; }
+    .screen-join-view .join-card .form-group label { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; display: block; }
     .join-tip {
       color: var(--text-secondary);
       font-size: 13px;
@@ -308,17 +305,18 @@
 <body>
   <!-- ===== Phase 1: 加入房间 ===== -->
   <div class="screen-join-view" id="joinView">
-    <div class="join-card">
-      <div class="icon">📺</div>
-      <h2>大屏展示</h2>
-      <p>将比赛实况投影到大屏幕</p>
+    <div class="join-card" style="padding:32px 40px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div class="icon">📺</div>
+        <div style="font-size:15px;color:var(--text-secondary);margin-top:4px;">输入房间号连接大屏</div>
+      </div>
       <div class="form-group">
         <label>房间号</label>
         <input class="form-input code-input" id="roomCodeInput" type="text" placeholder="XXXX" maxlength="4" autocomplete="off">
       </div>
       <button class="btn btn-primary" id="connectBtn">📺 连接大屏</button>
       <div class="join-tip">
-        请使用电脑浏览器打开此页面并投屏到电视<br>
+        电视/投影仪打开此页面<br>
         确保与服务器在 <strong>同一局域网</strong> 内
       </div>
     </div>
