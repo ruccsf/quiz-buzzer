@@ -46,7 +46,7 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      padding: 32px 48px 24px;
+      padding: 20px 40px 16px;
       overflow: hidden;
     }
 
@@ -96,24 +96,23 @@
     }
     .copy-btn:hover { background: rgba(255,255,255,0.15); color: var(--text-primary); }
 
-    /* ---- 中央状态区 ---- */
+    /* ---- 紧凑状态横条 ---- */
     .screen-status {
-      flex: 1;
+      flex-shrink: 0;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 6px 16px;
+      padding: 8px 0;
       min-height: 0;
-      padding: 20px 0;
     }
-
     .status-big-text {
-      font-size: 48px;
-      font-weight: 800;
-      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
       transition: all 0.3s;
-      min-height: 64px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      padding: 4px 0;
     }
     .status-big-text.idle { color: var(--text-secondary); }
     .status-big-text.open { color: var(--accent-yellow); animation: pulse 1s infinite; }
@@ -121,147 +120,180 @@
     .status-big-text.resolved { color: var(--accent-blue); }
 
     .timer-big {
-      font-size: 96px;
+      font-size: 36px;
       font-weight: 800;
-      line-height: 1;
-      min-height: 100px;
-      transition: all 0.3s;
+      min-width: 40px;
+      text-align: center;
+      flex-shrink: 0;
     }
     .timer-big.running { color: var(--accent-yellow); }
     .timer-big.warning { color: var(--accent-red); animation: pulse 0.5s infinite; }
     .timer-big.idle { color: var(--text-secondary); }
 
-    /* ---- 大屏题目展示 ---- */
+    /* ---- 大屏题目展示（独立占行） ---- */
     .screen-question {
-      text-align: center;
-      padding: 16px 32px;
-      background: rgba(74, 158, 255, 0.08);
-      border: 1px solid rgba(74, 158, 255, 0.2);
-      border-radius: 12px;
-      font-size: 40px;
+      width: 100%;
+      padding: 10px 20px;
+      background: rgba(74, 158, 255, 0.06);
+      border: 1px solid rgba(74, 158, 255, 0.15);
+      border-radius: 10px;
+      font-size: 28px;
       font-weight: 700;
       color: var(--accent-yellow);
       line-height: 1.5;
       word-break: break-word;
-      animation: fadeIn 0.5s ease;
-      max-width: 90%;
+      animation: fadeIn 0.4s ease;
+      margin-top: 4px;
     }
     .screen-question.hidden { display: none; }
     .screen-question .sq-answer {
       display: block;
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(0, 230, 118, 0.2);
-      font-size: 28px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 2px solid rgba(0, 230, 118, 0.25);
+      font-size: 26px;
       font-weight: 700;
       color: var(--accent-green);
     }
 
-    /* ---- 选手卡片网格 ---- */
-    .screen-cards {
+    /* ======== 竖向排行榜（TV风格列表） ======== */
+    .leaderboard {
+      flex: 1;
       display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      flex-shrink: 0;
+      justify-content: center;
+      padding: 8px 0;
       min-height: 0;
-      padding: 12px 0;
+      overflow: hidden;
+      gap: 6px;
     }
-
-    .s-card {
-      background: var(--bg-card);
-      border-radius: var(--radius);
-      padding: 24px 32px;
-      min-width: 180px;
-      text-align: center;
-      border: 3px solid rgba(255,255,255,0.08);
-      transition: all 0.3s ease;
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: transform 0.5s ease, border-color 0.3s, box-shadow 0.3s;
       position: relative;
-      animation: fadeIn 0.5s ease;
+      flex-shrink: 0;
+      backdrop-filter: blur(6px);
     }
-    .s-card .s-name {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-    .s-card .s-score {
-      font-size: 56px;
-      font-weight: 800;
-      transition: all 0.3s;
-    }
-    .s-card .s-status {
-      font-size: 14px;
-      margin-top: 6px;
-      color: var(--text-secondary);
-    }
-    .s-card .status-dot {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-right: 6px;
-      vertical-align: middle;
-    }
-    .s-card .status-dot.online { background: var(--accent-green); box-shadow: 0 0 8px rgba(0,230,118,0.6); }
-    .s-card .status-dot.offline { background: #555; }
+    .lb-row[data-rank="1"] { width: 88%; padding: 16px 24px; }
+    .lb-row[data-rank="2"] { width: 84%; padding: 14px 22px; }
+    .lb-row[data-rank="3"] { width: 80%; padding: 12px 20px; }
+    .lb-row[data-rank="4"],
+    .lb-row[data-rank="5"],
+    .lb-row[data-rank="6"],
+    .lb-row[data-rank="7"],
+    .lb-row[data-rank="8"] { width: 76%; padding: 10px 18px; }
 
-    .s-card.buzzed {
+    .lb-row.buzzed {
       border-color: var(--accent-yellow);
-      transform: scale(1.1);
-      box-shadow: 0 0 50px rgba(255,214,0,0.3);
-      animation: glow 1.5s infinite;
-      z-index: 2;
+      box-shadow: 0 0 30px rgba(255,214,0,0.2);
+      background: linear-gradient(135deg, rgba(255,214,0,0.08) 0%, rgba(255,214,0,0.01) 100%);
     }
-    .s-card.correct {
+    .lb-row.correct {
       border-color: var(--accent-green);
-      box-shadow: 0 0 50px rgba(0,230,118,0.4);
+      box-shadow: 0 0 30px rgba(0,230,118,0.2);
+      background: linear-gradient(135deg, rgba(0,230,118,0.08) 0%, rgba(0,230,118,0.01) 100%);
     }
-    .s-card.wrong {
+    .lb-row.wrong {
       border-color: var(--accent-red);
-      box-shadow: 0 0 50px rgba(255,23,68,0.4);
+      box-shadow: 0 0 30px rgba(255,23,68,0.2);
       animation: shake 0.5s ease;
     }
 
-    .s-card .buzz-badge {
-      display: none;
-      position: absolute;
-      top: -12px;
-      right: -12px;
-      background: var(--accent-yellow);
-      color: #000;
-      font-size: 14px;
-      font-weight: 700;
-      padding: 4px 12px;
-      border-radius: 20px;
-    }
-    .s-card.buzzed .buzz-badge { display: block; }
-
-    /* ---- 排名条 ---- */
-    .screen-ranking {
-      flex-shrink: 0;
+    /* ---- 排名徽章 ---- */
+    .lb-rank {
       display: flex;
-      gap: 12px;
+      align-items: center;
       justify-content: center;
-      align-items: center;
-      padding: 16px 20px;
-      background: var(--bg-secondary);
-      border-radius: var(--radius);
-      margin-top: 8px;
-      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      font-weight: 800;
+      flex-shrink: 0;
     }
-    .rank-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 16px;
-      border-radius: 8px;
-      background: var(--bg-primary);
-      white-space: nowrap;
+    .lb-row[data-rank="1"] .lb-rank { width: 48px; height: 48px; font-size: 24px; }
+    .lb-row[data-rank="2"] .lb-rank { width: 42px; height: 42px; font-size: 22px; }
+    .lb-row[data-rank="3"] .lb-rank { width: 38px; height: 38px; font-size: 20px; }
+    .lb-row[data-rank="4"] .lb-rank,
+    .lb-row[data-rank="5"] .lb-rank,
+    .lb-row[data-rank="6"] .lb-rank,
+    .lb-row[data-rank="7"] .lb-rank,
+    .lb-row[data-rank="8"] .lb-rank { width: 34px; height: 34px; font-size: 18px; background: rgba(255,255,255,0.04); color: var(--text-secondary); }
+    .lb-rank.gold { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; box-shadow: 0 0 16px rgba(255,215,0,0.4); }
+    .lb-rank.silver { background: linear-gradient(135deg, #e0e0e0, #b0b0b0); color: #000; box-shadow: 0 0 12px rgba(192,192,192,0.3); }
+    .lb-rank.bronze { background: linear-gradient(135deg, #cd7f32, #a0522d); color: #fff; box-shadow: 0 0 12px rgba(205,127,50,0.3); }
+
+    /* ---- 头像容器（用于定位皇冠） ---- */
+    .lb-avatar-wrap { position: relative; flex-shrink: 0; display: flex; }
+    .lb-avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.12); }
+    .lb-avatar-placeholder { border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; border: 2px solid rgba(255,255,255,0.08); }
+    .lb-row[data-rank="1"] .lb-avatar, .lb-row[data-rank="1"] .lb-avatar-placeholder { width: 72px; height: 72px; font-size: 28px; }
+    .lb-row[data-rank="2"] .lb-avatar, .lb-row[data-rank="2"] .lb-avatar-placeholder { width: 60px; height: 60px; font-size: 24px; }
+    .lb-row[data-rank="3"] .lb-avatar, .lb-row[data-rank="3"] .lb-avatar-placeholder { width: 52px; height: 52px; font-size: 20px; }
+    .lb-row[data-rank="4"] .lb-avatar, .lb-row[data-rank="4"] .lb-avatar-placeholder,
+    .lb-row[data-rank="5"] .lb-avatar, .lb-row[data-rank="5"] .lb-avatar-placeholder,
+    .lb-row[data-rank="6"] .lb-avatar, .lb-row[data-rank="6"] .lb-avatar-placeholder,
+    .lb-row[data-rank="7"] .lb-avatar, .lb-row[data-rank="7"] .lb-avatar-placeholder,
+    .lb-row[data-rank="8"] .lb-avatar, .lb-row[data-rank="8"] .lb-avatar-placeholder { width: 44px; height: 44px; font-size: 18px; }
+
+    /* ---- 选手名 ---- */
+    .lb-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .lb-row[data-rank="1"] .lb-name { font-size: 28px; }
+    .lb-row[data-rank="2"] .lb-name { font-size: 24px; }
+    .lb-row[data-rank="3"] .lb-name { font-size: 22px; }
+    .lb-row[data-rank="4"] .lb-name, .lb-row[data-rank="5"] .lb-name,
+    .lb-row[data-rank="6"] .lb-name, .lb-row[data-rank="7"] .lb-name,
+    .lb-row[data-rank="8"] .lb-name { font-size: 18px; }
+
+    /* ---- 分数 ---- */
+    .lb-score { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .lb-score-val { font-weight: 800; text-align: right; text-shadow: 0 0 16px currentColor; }
+    .lb-row[data-rank="1"] .lb-score-val { font-size: 32px; min-width: 56px; }
+    .lb-row[data-rank="2"] .lb-score-val { font-size: 28px; min-width: 48px; }
+    .lb-row[data-rank="3"] .lb-score-val { font-size: 24px; min-width: 42px; }
+    .lb-row[data-rank="4"] .lb-score-val, .lb-row[data-rank="5"] .lb-score-val,
+    .lb-row[data-rank="6"] .lb-score-val, .lb-row[data-rank="7"] .lb-score-val,
+    .lb-row[data-rank="8"] .lb-score-val { font-size: 20px; min-width: 36px; }
+
+    .lb-change { font-size: 14px; font-weight: 700; opacity: 0; transition: opacity 0.3s; min-width: 34px; text-align: left; }
+    .lb-change.visible { opacity: 1; animation: scorePopup 0.4s ease; }
+    .lb-change.positive { color: var(--accent-green); }
+    .lb-change.negative { color: var(--accent-red); }
+    @keyframes scorePopup { 0% { transform: scale(0.5) translateY(6px); opacity: 0; } 60% { transform: scale(1.2) translateY(-3px); } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+
+    /* ---- 在线指示器 ---- */
+    .lb-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .lb-dot.online { background: var(--accent-green); box-shadow: 0 0 10px rgba(0,230,118,0.8); }
+    .lb-dot.offline { background: #555; }
+
+    /* ---- 抢到徽章 ---- */
+    .lb-row .buzz-badge { display: none; position: absolute; top: -8px; right: -8px; background: linear-gradient(135deg, #ffd000, #ff8c00); color: #000; font-size: 12px; font-weight: 700; padding: 2px 12px; border-radius: 20px; white-space: nowrap; box-shadow: 0 2px 12px rgba(255,214,0,0.5); }
+    .lb-row.buzzed .buzz-badge { display: block; }
+
+    /* ---- 第1名皇冠（定位在头像上方） ---- */
+    .lb-crown {
+      position: absolute;
+      top: -26px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 30px;
+      line-height: 1;
+      animation: crownBounce 2s ease-in-out infinite;
+      pointer-events: none;
+      filter: drop-shadow(0 2px 8px rgba(255,215,0,0.6));
+      z-index: 2;
     }
-    .rank-item .r-medal { font-size: 24px; line-height: 1; }
-    .rank-item .r-name { font-size: 20px; font-weight: 600; }
-    .rank-item .r-score { font-size: 22px; font-weight: 800; margin-left: 4px; }
+    @keyframes crownBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0) rotate(-3deg); }
+      25% { transform: translateX(-50%) translateY(-5px) rotate(-1deg); }
+      50% { transform: translateX(-50%) translateY(0) rotate(3deg); }
+      75% { transform: translateX(-50%) translateY(-3px) rotate(1deg); }
+    }
+
+    .lb-empty { color: var(--text-secondary); font-size: 20px; text-align: center; padding: 24px; }
 
     /* ---- 底部事件条 ---- */
     .screen-footer {
@@ -326,14 +358,6 @@
       100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
     }
 
-    /* ---- 空状态 ---- */
-    .empty-hint {
-      color: var(--text-secondary);
-      font-size: 20px;
-      text-align: center;
-      padding: 24px;
-    }
-
     /* ---- 动画补充 ---- */
     @keyframes slideDown {
       from { transform: translateY(-100%); }
@@ -342,24 +366,71 @@
 
     /* ---- 响应式 ---- */
     @media (max-width: 768px) {
-      .screen-display { padding: 16px; }
-      .screen-header .game-title { font-size: 22px; }
-      .screen-header .meta-info { font-size: 16px; }
-      .status-big-text { font-size: 28px; min-height: 40px; }
-      .timer-big { font-size: 64px; min-height: 68px; }
-      .s-card { padding: 16px 20px; min-width: 120px; }
-      .s-card .s-name { font-size: 20px; }
-      .s-card .s-score { font-size: 36px; }
-      .screen-ranking { flex-wrap: wrap; gap: 8px; padding: 12px; }
-      .rank-item { padding: 4px 12px; }
-      .rank-item .r-name { font-size: 16px; }
-      .rank-item .r-score { font-size: 18px; }
+      .screen-display { padding: 10px 12px; }
+      .screen-header .game-title { font-size: 20px; }
+      .screen-header .meta-info { font-size: 14px; }
+      .screen-status { gap: 4px; }
+      .status-big-text { font-size: 15px; }
+      .timer-big { font-size: 22px; }
+      .screen-question { font-size: 18px; padding: 8px 14px; }
+      .leaderboard { gap: 4px; }
+      .lb-row[data-rank="1"] { width: 94%; padding: 12px 16px; gap: 10px; }
+      .lb-row[data-rank="1"] .lb-rank { width: 36px; height: 36px; font-size: 18px; }
+      .lb-row[data-rank="1"] .lb-avatar, .lb-row[data-rank="1"] .lb-avatar-placeholder { width: 50px; height: 50px; font-size: 20px; }
+      .lb-row[data-rank="1"] .lb-name { font-size: 20px; }
+      .lb-row[data-rank="1"] .lb-score-val { font-size: 24px; min-width: 40px; }
+      .lb-row[data-rank="2"] { width: 92%; padding: 10px 14px; gap: 8px; }
+      .lb-row[data-rank="2"] .lb-rank { width: 32px; height: 32px; font-size: 16px; }
+      .lb-row[data-rank="2"] .lb-avatar, .lb-row[data-rank="2"] .lb-avatar-placeholder { width: 42px; height: 42px; font-size: 17px; }
+      .lb-row[data-rank="2"] .lb-name { font-size: 18px; }
+      .lb-row[data-rank="2"] .lb-score-val { font-size: 20px; min-width: 36px; }
+      .lb-row[data-rank="3"] { width: 90%; padding: 8px 12px; gap: 6px; }
+      .lb-row[data-rank="3"] .lb-rank { width: 28px; height: 28px; font-size: 15px; }
+      .lb-row[data-rank="3"] .lb-avatar, .lb-row[data-rank="3"] .lb-avatar-placeholder { width: 36px; height: 36px; font-size: 14px; }
+      .lb-row[data-rank="3"] .lb-name { font-size: 16px; }
+      .lb-row[data-rank="3"] .lb-score-val { font-size: 18px; min-width: 32px; }
+      .lb-row[data-rank="4"], .lb-row[data-rank="5"], .lb-row[data-rank="6"],
+      .lb-row[data-rank="7"], .lb-row[data-rank="8"] { width: 88%; padding: 6px 10px; gap: 6px; }
+      .lb-row[data-rank="4"] .lb-rank, .lb-row[data-rank="5"] .lb-rank,
+      .lb-row[data-rank="6"] .lb-rank, .lb-row[data-rank="7"] .lb-rank,
+      .lb-row[data-rank="8"] .lb-rank { width: 26px; height: 26px; font-size: 13px; }
+      .lb-row[data-rank="4"] .lb-avatar, .lb-row[data-rank="4"] .lb-avatar-placeholder,
+      .lb-row[data-rank="5"] .lb-avatar, .lb-row[data-rank="5"] .lb-avatar-placeholder,
+      .lb-row[data-rank="6"] .lb-avatar, .lb-row[data-rank="6"] .lb-avatar-placeholder,
+      .lb-row[data-rank="7"] .lb-avatar, .lb-row[data-rank="7"] .lb-avatar-placeholder,
+      .lb-row[data-rank="8"] .lb-avatar, .lb-row[data-rank="8"] .lb-avatar-placeholder { width: 30px; height: 30px; font-size: 12px; }
+      .lb-row[data-rank="4"] .lb-name, .lb-row[data-rank="5"] .lb-name,
+      .lb-row[data-rank="6"] .lb-name, .lb-row[data-rank="7"] .lb-name,
+      .lb-row[data-rank="8"] .lb-name { font-size: 14px; }
+      .lb-row[data-rank="4"] .lb-score-val, .lb-row[data-rank="5"] .lb-score-val,
+      .lb-row[data-rank="6"] .lb-score-val, .lb-row[data-rank="7"] .lb-score-val,
+      .lb-row[data-rank="8"] .lb-score-val { font-size: 15px; min-width: 28px; }
     }
     @media (max-width: 400px) {
-      .screen-display { padding: 8px; }
-      .s-card { min-width: 90px; padding: 10px 14px; }
-      .s-card .s-name { font-size: 16px; }
-      .s-card .s-score { font-size: 28px; }
+      .screen-display { padding: 6px; }
+      .lb-row[data-rank="1"] { width: 98%; padding: 10px 12px; gap: 6px; }
+      .lb-row[data-rank="1"] .lb-rank { width: 30px; height: 30px; font-size: 15px; }
+      .lb-row[data-rank="1"] .lb-avatar, .lb-row[data-rank="1"] .lb-avatar-placeholder { width: 40px; height: 40px; font-size: 16px; }
+      .lb-row[data-rank="1"] .lb-name { font-size: 16px; }
+      .lb-row[data-rank="1"] .lb-score-val { font-size: 18px; min-width: 30px; }
+      .lb-row[data-rank="2"] { width: 96%; padding: 8px 10px; gap: 5px; }
+      .lb-row[data-rank="2"] .lb-avatar, .lb-row[data-rank="2"] .lb-avatar-placeholder { width: 34px; height: 34px; font-size: 14px; }
+      .lb-row[data-rank="2"] .lb-name { font-size: 14px; }
+      .lb-row[data-rank="2"] .lb-score-val { font-size: 16px; min-width: 28px; }
+      .lb-row[data-rank="3"], .lb-row[data-rank="4"], .lb-row[data-rank="5"],
+      .lb-row[data-rank="6"], .lb-row[data-rank="7"], .lb-row[data-rank="8"] { width: 94%; padding: 6px 8px; gap: 4px; }
+      .lb-row[data-rank="3"] .lb-avatar, .lb-row[data-rank="3"] .lb-avatar-placeholder,
+      .lb-row[data-rank="4"] .lb-avatar, .lb-row[data-rank="4"] .lb-avatar-placeholder,
+      .lb-row[data-rank="5"] .lb-avatar, .lb-row[data-rank="5"] .lb-avatar-placeholder,
+      .lb-row[data-rank="6"] .lb-avatar, .lb-row[data-rank="6"] .lb-avatar-placeholder,
+      .lb-row[data-rank="7"] .lb-avatar, .lb-row[data-rank="7"] .lb-avatar-placeholder,
+      .lb-row[data-rank="8"] .lb-avatar, .lb-row[data-rank="8"] .lb-avatar-placeholder { width: 28px; height: 28px; font-size: 11px; }
+      .lb-row[data-rank="3"] .lb-name, .lb-row[data-rank="4"] .lb-name,
+      .lb-row[data-rank="5"] .lb-name, .lb-row[data-rank="6"] .lb-name,
+      .lb-row[data-rank="7"] .lb-name, .lb-row[data-rank="8"] .lb-name { font-size: 12px; }
+      .lb-row[data-rank="3"] .lb-score-val, .lb-row[data-rank="4"] .lb-score-val,
+      .lb-row[data-rank="5"] .lb-score-val, .lb-row[data-rank="6"] .lb-score-val,
+      .lb-row[data-rank="7"] .lb-score-val, .lb-row[data-rank="8"] .lb-score-val { font-size: 13px; min-width: 22px; }
     }
   </style>
 </head>
@@ -405,12 +476,8 @@
       <div class="screen-question hidden" id="screenQuestion"></div>
     </div>
 
-    <div class="screen-cards" id="cardsContainer">
-      <div class="empty-hint">暂无选手加入</div>
-    </div>
-
-    <div class="screen-ranking hidden" id="rankingBar">
-      <div id="rankingInner" style="display:flex;gap:12px;"></div>
+    <div class="leaderboard" id="leaderboard">
+      <div class="lb-empty">暂无选手加入</div>
     </div>
 
     <div class="screen-footer">
@@ -436,7 +503,7 @@
     let currentBuzzer = null;
     let currentRound = 0;
     let eventEntries = [];
-    let prevRankings = {};
+    let prevScores = {}; // 记录上一次分数，用于显示变化
 
     // ======== Phase 1: 加入 ========
     const codeInput = $('#roomCodeInput');
@@ -487,8 +554,7 @@
           $('#screenQuestion').classList.remove('hidden');
         }
 
-        renderCards();
-        renderRanking();
+        renderLeaderboard();
         updateStatusUI(currentState, currentBuzzer, room.timerRemaining);
         if (currentState === 'open' && room.timerRemaining > 0) {
           updateTimer(room.timerRemaining);
@@ -527,15 +593,14 @@
     });
 
     socket.on('buzz-result', ({ winnerId, winnerName }) => {
-      highlightCard(winnerId, 'buzzed');
+      highlightRow(winnerId, 'buzzed');
       addEventLog('🏆 ' + winnerName + ' 抢答成功！', true);
     });
 
     socket.on('judge-result', ({ correct, contestantId, delta, answer }) => {
-      highlightCard(contestantId, correct ? 'correct' : 'wrong');
+      highlightRow(contestantId, correct ? 'correct' : 'wrong');
       setTimeout(() => {
-        const cards = $$('.s-card');
-        cards.forEach(c => { c.classList.remove('correct', 'wrong'); });
+        $$('.lb-row').forEach(c => { c.classList.remove('correct', 'wrong'); });
       }, 2500);
 
       // 更新大状态文本
@@ -572,8 +637,11 @@
 
     socket.on('score-update', ({ contestants: updated }) => {
       if (updated) contestants = updated;
-      renderCards();
-      renderRanking();
+      renderLeaderboard();
+    });
+
+    socket.on('avatar-updated', () => {
+      refreshRoom();
     });
 
     socket.on('timer-tick', ({ remaining }) => {
@@ -595,13 +663,10 @@
     });
 
     socket.on('contestant-status', ({ contestantId, connected }) => {
-      const dots = $$('.s-card .status-dot');
-      $$('.s-card').forEach(card => {
-        if (card.dataset.id === contestantId) {
-          const dot = card.querySelector('.status-dot');
-          if (dot) dot.className = 'status-dot ' + (connected ? 'online' : 'offline');
-          const statusText = card.querySelector('.s-status');
-          if (statusText) statusText.innerHTML = (connected ? '● 在线' : '○ 离线');
+      $$('.lb-row').forEach(row => {
+        if (row.dataset.id === contestantId) {
+          const dot = row.querySelector('.lb-dot');
+          if (dot) dot.className = 'lb-dot ' + (connected ? 'online' : 'offline');
         }
       });
     });
@@ -637,8 +702,7 @@
             } else {
               $('#screenQuestion').classList.add('hidden');
             }
-            renderCards();
-            renderRanking();
+            renderLeaderboard();
             updateStatusUI(currentState, currentBuzzer, room.timerRemaining);
             if (currentState === 'open' && room.timerRemaining > 0) {
               updateTimer(room.timerRemaining);
@@ -697,79 +761,110 @@
       el.className = remaining <= 3 ? 'timer-big warning' : 'timer-big running';
     }
 
-    function renderCards() {
-      const container = $('#cardsContainer');
+    function renderLeaderboard() {
+      const container = $('#leaderboard');
       if (!contestants || contestants.length === 0) {
-        container.innerHTML = '<div class="empty-hint">暂无选手加入</div>';
+        container.innerHTML = '<div class="lb-empty">暂无选手加入</div>';
         return;
       }
 
-      // 按分数从高到低排序
+      // FLIP: 快照旧位置
+      const oldRects = new Map();
+      container.querySelectorAll('.lb-row').forEach(el => {
+        const id = el.dataset.id;
+        if (id) oldRects.set(id, el.getBoundingClientRect().top);
+      });
+
       const sorted = [...contestants].sort((a, b) => b.score - a.score);
 
-      container.innerHTML = sorted.map(c => {
+      // 计算同分名次（同分同排名，后面跳号）
+      let prevScore = null;
+      let rankNum = 0;
+      const withRank = sorted.map((c, i) => {
+        if (c.score !== prevScore) rankNum = i + 1;
+        prevScore = c.score;
+        return { ...c, rank: rankNum };
+      });
+
+      container.innerHTML = withRank.map((c, i) => {
         const isBuzzed = currentBuzzer && c.id === currentBuzzer.contestantId;
+        const r = c.rank;
+        let rankClass = '';
+        let rankText = r;
+        if (r === 1) { rankClass = 'gold'; rankText = '🥇'; }
+        else if (r === 2) { rankClass = 'silver'; rankText = '🥈'; }
+        else if (r === 3) { rankClass = 'bronze'; rankText = '🥉'; }
+
+        const crownHtml = r === 1 ? '<span class="lb-crown">👑</span>' : '';
+        const avHtml = `<div class="lb-avatar-wrap">${crownHtml}` + (c.avatar
+          ? `<img class="lb-avatar" src="${c.avatar}" alt="">`
+          : `<span class="lb-avatar-placeholder" style="background:${c.color}33;color:${c.color}">${c.name.charAt(0)}</span>`) + `</div>`;
+
+        // 分数变化
+        const prev = prevScores[c.id];
+        let changeHtml = '';
+        if (prev !== undefined && prev !== c.score) {
+          const diff = c.score - prev;
+          const cls = diff > 0 ? 'positive' : 'negative';
+          changeHtml = `<span class="lb-change visible ${cls}">${diff > 0 ? '+' : ''}${diff}</span>`;
+        } else {
+          changeHtml = `<span class="lb-change"></span>`;
+        }
+
         return `
-          <div class="s-card ${isBuzzed ? 'buzzed' : ''}" data-id="${c.id}">
-            <div class="s-name" style="color:${c.color}">${c.name}</div>
-            <div class="s-score" style="color:${c.color}">${c.score}</div>
-            <div class="s-status">
-              <span class="status-dot ${c.connected ? 'online' : 'offline'}"></span>
-              ${c.connected ? '● 在线' : '○ 离线'}
+          <div class="lb-row ${isBuzzed ? 'buzzed' : ''}" data-id="${c.id}" data-rank="${r}">
+            <div class="lb-rank ${rankClass}">${rankText}</div>
+            ${avHtml}
+            <span class="lb-name" style="color:${c.color}">${c.name}</span>
+            <div class="lb-score">
+              <span class="lb-score-val" style="color:${c.color}">${c.score}</span>
+              ${changeHtml}
             </div>
-            <div class="buzz-badge">🏆 抢到</div>
+            <span class="lb-dot ${c.connected ? 'online' : 'offline'}"></span>
+            <span class="buzz-badge">🏆 抢到</span>
           </div>
         `;
       }).join('');
+
+      // 记录分数
+      sorted.forEach(c => { prevScores[c.id] = c.score; });
+
+      // 分数变化标签 3 秒后自动消失
+      setTimeout(() => {
+        container.querySelectorAll('.lb-change.visible').forEach(el => {
+          el.classList.remove('visible');
+        });
+      }, 3000);
+
+      // FLIP: 动画平移
+      requestAnimationFrame(() => {
+        container.querySelectorAll('.lb-row').forEach(el => {
+          const id = el.dataset.id;
+          if (oldRects.has(id)) {
+            const newTop = el.getBoundingClientRect().top;
+            const dy = oldRects.get(id) - newTop;
+            if (Math.abs(dy) > 1) {
+              el.style.transition = 'none';
+              el.style.transform = `translateY(${dy}px)`;
+              requestAnimationFrame(() => {
+                el.style.transition = 'transform 0.5s ease';
+                el.style.transform = '';
+              });
+            }
+          }
+        });
+      });
     }
 
-    function highlightCard(contestantId, type) {
-      const cards = $$('.s-card');
-      cards.forEach(c => {
-        c.classList.remove('buzzed', 'correct', 'wrong');
-        if (c.dataset.id === contestantId) {
-          c.classList.add(type);
-        }
+    function highlightRow(contestantId, type) {
+      $$('.lb-row').forEach(r => {
+        r.classList.remove('buzzed', 'correct', 'wrong');
+        if (r.dataset.id === contestantId) r.classList.add(type);
       });
     }
 
     function clearHighlights() {
-      $$('.s-card').forEach(c => c.classList.remove('buzzed', 'correct', 'wrong'));
-    }
-
-    function renderRanking() {
-      const bar = $('#rankingBar');
-      const inner = $('#rankingInner');
-      if (!contestants || contestants.length < 2) {
-        bar.classList.add('hidden');
-        return;
-      }
-
-      bar.classList.remove('hidden');
-      const sorted = [...contestants].sort((a, b) => b.score - a.score);
-      const medals = ['🥇', '🥈', '🥉'];
-
-      const newPrev = {};
-      inner.innerHTML = sorted.slice(0, 3).map((c, i) => {
-        newPrev[c.id] = i + 1;
-        return `
-          <div class="rank-item">
-            <span class="r-medal">${medals[i]}</span>
-            <span class="r-name" style="color:${c.color}">${c.name}</span>
-            <span class="r-score" style="color:${c.color}">${c.score}</span>
-          </div>
-        `;
-      }).join('');
-      prevRankings = newPrev;
-
-      // 如果超过3人，显示"…"
-      if (sorted.length > 3) {
-        const more = document.createElement('div');
-        more.className = 'rank-item';
-        more.style.background = 'transparent';
-        more.innerHTML = `<span style="color:var(--text-secondary);font-size:18px;">… 共 ${sorted.length} 人</span>`;
-        inner.appendChild(more);
-      }
+      $$('.lb-row').forEach(r => r.classList.remove('buzzed', 'correct', 'wrong'));
     }
 
     function launchConfetti() {
@@ -811,8 +906,7 @@
         contestants = res.room.contestants || [];
         currentRound = res.room.round || 0;
         $('#roundLabel').textContent = '第 ' + currentRound + ' 题';
-        renderCards();
-        renderRanking();
+        renderLeaderboard();
       });
     }
   </script>

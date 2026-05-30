@@ -5,10 +5,67 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
+app.use(express.json({ limit: '1mb' })); // 用于接收 base64 头像
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
 });
+
+// 头像存储目录
+const AVATAR_DIR = path.join(__dirname, 'public', 'avatars');
+if (!fs.existsSync(AVATAR_DIR)) fs.mkdirSync(AVATAR_DIR, { recursive: true });
+
+// POST /api/upload-avatar  — 选手上传头像（base64 → 文件）
+app.post('/api/upload-avatar', (req, res) => {
+  try {
+    const { contestantId, image } = req.body;
+    if (!contestantId || !image) return res.status(400).json({ ok: false, error: '参数不足' });
+
+    // 校验图片格式 base64
+    const matches = image.match(/^data:image\/(png|jpeg|jpg|gif|webp|svg\+xml);base64,(.+)$/);
+    if (!matches) return res.status(400).json({ ok: false, error: '图片格式不支持' });
+
+    const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1] === 'svg+xml' ? 'svg' : matches[1];
+    const buffer = Buffer.from(matches[2], 'base64');
+    // 限制单文件最大 500KB
+    if (buffer.length > 512000) return res.status(413).json({ ok: false, error: '图片太大' });
+
+    const fileName = contestantId + '.' + ext;
+    fs.writeFileSync(path.join(AVATAR_DIR, fileName), buffer);
+
+    const avatarUrl = '/avatars/' + fileName + '?t=' + Date.now();
+
+    // 通知房间更新头像（需要知道选手在哪个房间）
+    // 房间信息通过 body 传入或在服务端查找
+    const { roomCode } = req.body;
+    if (roomCode) {
+      const room = getRoom(roomCode);
+      if (room) {
+        const contestant = room.contestants.find(c => c.id === contestantId);
+        if (contestant) {
+          contestant.avatar = avatarUrl;
+        }
+      }
+      io.to(roomCode).emit('avatar-updated', { contestantId, avatarUrl });
+    }
+
+    res.json({ ok: true, avatarUrl });
+  } catch (err) {
+    console.error('上传头像失败:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// 清理选手头像文件
+function deleteAvatarFile(contestantId) {
+  if (!contestantId) return;
+  const files = fs.readdirSync(AVATAR_DIR);
+  for (const f of files) {
+    if (f.startsWith(contestantId + '.')) {
+      fs.unlinkSync(path.join(AVATAR_DIR, f));
+    }
+  }
+}
 
 // 路由：无后缀页面路径 → HTML 文件（禁用缓存）
 app.get(['/host', '/contestant', '/screen', '/player', '/questions'], (req, res) => {
@@ -48,6 +105,7 @@ function saveRooms() {
             name: c.name,
             score: c.score,
             color: c.color,
+            avatar: c.avatar || '',
             socketId: null,            // 运行时状态，不持久化
           })),
           state: 'idle',               // 重启后一律回到 idle
@@ -79,8 +137,8 @@ function loadRooms() {
         hostSocketId: null,
         timerInterval: null,
         usedQuestionIds: saved.usedQuestionIds || [],
-        // 确保 contestants 的 socketId 是 null
-        contestants: (saved.contestants || []).map(c => ({ ...c, socketId: null })),
+        // 确保 contestants 的 socketId 是 null, avatar 有默认值
+        contestants: (saved.contestants || []).map(c => ({ ...c, socketId: null, avatar: c.avatar || '' })),
       };
       loaded++;
     }
@@ -234,6 +292,10 @@ io.on('connection', (socket) => {
       if (!room) return callback?.({ ok: false, error: '房间不存在' });
       // 允许删除条件：是当前主持人，或者房间没有主持人认领（重启后）
       if (room.hostSocketId && socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '你不是该房间的主持人' });
+      // 清理该房间所有选手的头像文件
+      for (const c of room.contestants) {
+        deleteAvatarFile(c.id);
+      }
       io.to(roomCode).emit('host-disconnected');
       clearInterval(room.timerInterval);
       deleteRoom(roomCode);
@@ -290,7 +352,7 @@ io.on('connection', (socket) => {
       callback?.({ ok: true, room: {
         id: room.id,
         gameName: room.gameName,
-        contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color })),
+        contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color, avatar: c.avatar || '' })),
         state: room.state,
         currentQuestion: room.currentQuestion,
         currentAnswer: room.currentAnswer,
@@ -343,6 +405,7 @@ io.on('connection', (socket) => {
         name: trimmedName,
         score: 0,
         color: COLORS[room.contestants.length % COLORS.length],
+        avatar: '',
         socketId: socket.id,
       };
 
@@ -625,7 +688,7 @@ io.on('connection', (socket) => {
       room: {
         id: room.id,
         gameName: room.gameName,
-        contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color, connected: c.socketId !== null })),
+        contestants: room.contestants.map(c => ({ id: c.id, name: c.name, score: c.score, color: c.color, avatar: c.avatar || '', connected: c.socketId !== null })),
         state: room.state,
         timer: room.timer,
         currentBuzzer: room.currentBuzzer,
@@ -649,7 +712,7 @@ io.on('connection', (socket) => {
           id: room.id,
           gameName: room.gameName,
           contestants: room.contestants.map(c => ({
-            id: c.id, name: c.name, score: c.score, color: c.color,
+            id: c.id, name: c.name, score: c.score, color: c.color, avatar: c.avatar || '',
             connected: c.socketId !== null,
           })),
           state: room.state,

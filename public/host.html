@@ -386,7 +386,27 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 6px;
       margin-bottom: 8px;
+    }
+    .contestant-card .avatar-mini {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,0.1);
+    }
+    .contestant-card .avatar-mini-placeholder {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     .contestant-card .buzz-badge {
@@ -465,6 +485,27 @@
       gap: 8px;
     }
 
+    .avatar-tiny {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.08);
+      vertical-align: middle;
+    }
+    .avatar-tiny-placeholder {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
     .score-row {
       display: flex;
       align-items: center;
@@ -1278,6 +1319,12 @@
       renderRanking();
     });
 
+    socket.on('avatar-updated', () => {
+      renderContestants();
+      renderScoreList();
+      renderRanking();
+    });
+
     socket.on('timer-tick', ({ remaining }) => {
       updateTimer(remaining);
     });
@@ -1340,17 +1387,22 @@
           grid.innerHTML = '<div style="color: var(--text-secondary); font-size: 18px; text-align: center; width: 100%;">等待选手加入...<br><span style="font-size:14px;margin-top:8px;display:inline-block;">选手在手机打开本页 → 输入房间号加入</span></div>';
           return;
         }
-        grid.innerHTML = contestants.map(c => `
+        grid.innerHTML = contestants.map(c => {
+          const avatarHtml = c.avatar
+            ? `<img class="avatar-mini" src="${c.avatar}" alt="">`
+            : `<span class="avatar-mini-placeholder" style="background:${c.color}33;color:${c.color}">${c.name.charAt(0)}</span>`;
+          return `
           <div class="contestant-card" data-id="${c.id}">
             <div class="contestant-name-row">
               <span class="status-dot ${c.connected ? 'online' : 'offline'}"></span>
+              ${avatarHtml}
               <span class="name" style="color: ${c.color}">${c.name}</span>
             </div>
             <div class="score" style="color: ${c.color}" id="score-${c.id}">${c.score}</div>
             <div class="buzz-badge">🏆 抢到</div>
             <div class="status-hint" style="font-size:12px;color:var(--text-secondary);margin-top:6px;">${c.connected ? '● 在线' : '○ 离线'}</div>
-          </div>
-        `).join('');
+          </div>`;
+        }).join('');
       });
     }
 
@@ -1377,16 +1429,21 @@
           list.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; text-align: center;">暂无选手</div>';
           return;
         }
-        list.innerHTML = contestants.map(c => `
+        list.innerHTML = contestants.map(c => {
+          const avHtml = c.avatar
+            ? `<img class="avatar-tiny" src="${c.avatar}" alt="">`
+            : `<span class="avatar-tiny-placeholder" style="background:${c.color}33;color:${c.color}">${c.name.charAt(0)}</span>`;
+          return `
           <div class="score-row">
+            ${avHtml}
             <span class="name" style="color: ${c.color}">${c.name}</span>
             <button class="adj-btn minus" data-id="${c.id}" data-delta="-5">−5</button>
             <span class="pts">${c.score}</span>
             <button class="adj-btn plus" data-id="${c.id}" data-delta="5">+5</button>
             <button class="adj-btn plus" data-id="${c.id}" data-delta="10">+10</button>
             <button class="remove-btn" data-id="${c.id}" title="移除选手">✕</button>
-          </div>
-        `).join('');
+          </div>`;
+        }).join('');
         list.querySelectorAll('.adj-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const id = btn.dataset.id;
@@ -1444,9 +1501,13 @@
             else changeHtml = '<span class="rank-change same">−</span>';
           }
 
+          const avHtml = c.avatar
+            ? `<img class="avatar-tiny" src="${c.avatar}" alt="">`
+            : `<span class="avatar-tiny-placeholder" style="background:${c.color}33;color:${c.color}">${c.name.charAt(0)}</span>`;
           return `
             <div class="ranking-item">
               <div class="rank ${rankClass}">${rankEmoji}</div>
+              ${avHtml}
               <span class="rname" style="color:${c.color}">${c.name}</span>
               <span class="rscore" style="color:${c.color}">${c.score}</span>
               ${changeHtml}

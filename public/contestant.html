@@ -69,6 +69,179 @@
       white-space: nowrap;
     }
 
+    /* ---- 头像区域 ---- */
+    .avatar-area {
+      flex-shrink: 0;
+      margin-bottom: 4px;
+    }
+    .avatar-wrap {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      margin: 0 auto;
+      border: 3px solid rgba(255,255,255,0.1);
+      transition: border-color 0.2s;
+      background: var(--bg-card);
+    }
+    .avatar-wrap:hover { border-color: var(--accent-blue); }
+    .avatar-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .avatar-wrap .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 700;
+      user-select: none;
+    }
+    .avatar-wrap .avatar-img.hidden,
+    .avatar-wrap .avatar-placeholder.hidden {
+      display: none !important;
+    }
+    .avatar-wrap .avatar-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 11px;
+      text-align: center;
+      padding: 3px 0;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .avatar-wrap:hover .avatar-overlay { opacity: 1; }
+    .avatar-wrap .upload-hint {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 11px;
+      background: rgba(0,0,0,0.4);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .avatar-wrap:hover .upload-hint { opacity: 1; }
+    .avatar-wrap .upload-hint.hidden { display: none; }
+
+    /* ---- 头像选择器 ---- */
+    .avatar-picker-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      animation: fadeIn 0.2s ease;
+    }
+    .avatar-picker-overlay.hidden { display: none; }
+    .avatar-picker {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.25s ease;
+    }
+    .avatar-picker h3 {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+    .avatar-picker .ap-section {
+      margin-bottom: 14px;
+    }
+    .avatar-picker .ap-section-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .avatar-picker .ap-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+    .avatar-picker .ap-item {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.15s;
+      overflow: hidden;
+      background: var(--bg-primary);
+    }
+    .avatar-picker .ap-item:hover { border-color: var(--accent-blue); transform: scale(1.1); }
+    .avatar-picker .ap-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .avatar-picker .ap-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 12px 0;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+    .avatar-picker .ap-divider::before,
+    .avatar-picker .ap-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+    .avatar-picker .ap-upload-btn {
+      width: 100%;
+      padding: 10px;
+      background: rgba(74,158,255,0.1);
+      border: 2px dashed rgba(74,158,255,0.3);
+      border-radius: var(--radius-sm);
+      color: var(--accent-blue);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .avatar-picker .ap-upload-btn:hover {
+      background: rgba(74,158,255,0.2);
+      border-color: var(--accent-blue);
+    }
+    .avatar-picker .ap-cancel {
+      display: block;
+      margin: 10px auto 0;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .avatar-picker .ap-cancel:hover { color: var(--text-primary); }
+
     /* ---- 中间弹性区域：垂直居中所有内容 ---- */
     .buzz-area {
       flex: 1;
@@ -242,8 +415,33 @@
       <div class="contestant-name-display" id="nameDisplay">——</div>
     </div>
 
-    <!-- 中间弹性区域：倒计时 + 提示 + 按钮 垂直居中 -->
+    <!-- 中间弹性区域：头像 + 倒计时 + 提示 + 按钮 垂直居中 -->
     <div class="buzz-area">
+      <div class="avatar-area">
+        <div class="avatar-wrap" id="avatarWrap" onclick="showAvatarPicker()">
+          <div class="avatar-placeholder" id="avatarPlaceholder">👤</div>
+          <img class="avatar-img hidden" id="avatarImg" src="" alt="">
+          <div class="upload-hint" id="uploadHint">📷 更换头像</div>
+        </div>
+      </div>
+
+      <!-- 头像选择器 -->
+      <div class="avatar-picker-overlay hidden" id="avatarPicker">
+        <div class="avatar-picker">
+          <h3>🎨 选择头像</h3>
+          <div class="ap-section">
+            <div class="ap-section-label">👦 男生</div>
+            <div class="ap-grid" id="apMaleGrid"></div>
+          </div>
+          <div class="ap-section">
+            <div class="ap-section-label">👧 女生</div>
+            <div class="ap-grid" id="apFemaleGrid"></div>
+          </div>
+          <div class="ap-divider">或者</div>
+          <button class="ap-upload-btn" onclick="selectAvatar()">📷 上传自己的照片</button>
+          <button class="ap-cancel" onclick="hideAvatarPicker()">取消</button>
+        </div>
+      </div>
       <div class="question-card hidden" id="questionCard"></div>
       <div class="timer-badge hidden" id="timerBadge">--</div>
       <div class="status-hint" id="statusHint">连接中...</div>
@@ -260,6 +458,8 @@
     </div>
   </div>
 
+  <input type="file" id="avatarFileInput" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none">
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/socket-client.js"></script>
   <script>
@@ -273,7 +473,7 @@
       setTimeout(() => window.location.href = '/', 1500);
     }
 
-    $('#roomBadge').textContent = '房间: ' + roomCode;
+    $('#roomBadge').innerHTML = '房间: ' + roomCode + '<button class="copy-btn" onclick="copyText(\'' + roomCode + '\',this)" style="background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:1px 6px;">📋</button>';
 
     // ---- 重新连接房间 ----
     socket.emit('rejoin-room', { roomCode, contestantId }, (res) => {
@@ -283,6 +483,13 @@
           $('#nameDisplay').textContent = me.name;
           $('#nameDisplay').style.color = me.color;
           $('#scoreDisplay').textContent = me.score;
+          myColor = me.color;
+          if (me.avatar) setAvatar(me.avatar);
+          if (!me.avatar) {
+            $('#avatarPlaceholder').textContent = me.name.charAt(0);
+            $('#avatarPlaceholder').style.background = me.color + '33';
+            $('#avatarPlaceholder').style.color = me.color;
+          }
         }
         $('#hostInfo').textContent = `🏆 ${res.room.gameName}`;
         updateUIState(res.room.state, res.room.currentBuzzer);
@@ -401,6 +608,7 @@
       const me = contestants.find(c => c.id === contestantId);
       if (me) {
         $('#scoreDisplay').textContent = me.score;
+        if (me.avatar) setAvatar(me.avatar);
       }
     });
 
@@ -488,6 +696,171 @@
           break;
       }
     }
+
+    // ======== 头像上传 + 默认头像选择 ========
+    let myColor = '#4a9eff';
+
+    // 本地预设头像（存放在 /avatars/presets/ 目录下）
+    const AVATAR_PRESETS = [
+      // 5 个男生
+      { file: 'male1.svg' },
+      { file: 'male2.svg' },
+      { file: 'male3.svg' },
+      { file: 'male4.svg' },
+      { file: 'male5.svg' },
+      // 5 个女生
+      { file: 'female1.svg' },
+      { file: 'female2.svg' },
+      { file: 'female3.svg' },
+      { file: 'female4.svg' },
+      { file: 'female5.svg' },
+    ];
+
+    function localAvatarUrl(file) {
+      return '/avatars/presets/' + file;
+    }
+
+    // ---- 头像选择器 ----
+    function showAvatarPicker() {
+      const picker = $('#avatarPicker');
+      renderPresetAvatars();
+      picker.classList.remove('hidden');
+    }
+
+    function hideAvatarPicker() {
+      $('#avatarPicker').classList.add('hidden');
+    }
+
+    function renderPresetAvatars() {
+      const maleGrid = $('#apMaleGrid');
+      const femaleGrid = $('#apFemaleGrid');
+      maleGrid.innerHTML = '';
+      femaleGrid.innerHTML = '';
+
+      AVATAR_PRESETS.forEach((p, i) => {
+        const container = i < 5 ? maleGrid : femaleGrid;
+        const item = document.createElement('div');
+        item.className = 'ap-item';
+        item.title = '选择此头像';
+        const img = document.createElement('img');
+        img.src = localAvatarUrl(p.file);
+        img.loading = 'lazy';
+        item.appendChild(img);
+        item.addEventListener('click', () => selectPresetAvatar(p.file));
+        container.appendChild(item);
+      });
+    }
+
+    function selectPresetAvatar(file) {
+      hideAvatarPicker();
+      showToast('⏳ 加载头像...');
+
+      // 直接 fetch SVG → base64 → 上传（无需 Canvas，避免跨域问题）
+      fetch(localAvatarUrl(file))
+        .then(r => r.text())
+        .then(svgText => {
+          const base64 = btoa(unescape(encodeURIComponent(svgText)));
+          uploadAvatar('data:image/svg+xml;base64,' + base64);
+        })
+        .catch(() => showToast('加载头像失败，请重试'));
+    }
+
+    function selectAvatar() {
+      hideAvatarPicker();
+      const input = $('#avatarFileInput');
+      input.value = '';
+      input.click();
+    }
+
+    $('#avatarFileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      // Canvas 压缩
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX = 200;
+          let w = img.width, h = img.height;
+          if (w > MAX || h > MAX) {
+            const ratio = Math.min(MAX / w, MAX / h);
+            w = Math.round(w * ratio);
+            h = Math.round(h * ratio);
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.5);
+          // 上传
+          uploadAvatar(compressed);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function uploadAvatar(imageData) {
+      const hint = $('#uploadHint');
+      hint.textContent = '⏳ 上传中...';
+      hint.classList.remove('hidden');
+
+      fetch('/api/upload-avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contestantId, roomCode, image: imageData }),
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.ok) {
+          setAvatar(res.avatarUrl);
+          showToast('✅ 头像已更新', 'success');
+        } else {
+          showToast(res.error || '上传失败');
+        }
+      })
+      .catch(() => showToast('上传失败，请重试'))
+      .finally(() => {
+        hint.textContent = '📷 更换头像';
+      });
+    }
+
+    function setAvatar(url) {
+      const img = $('#avatarImg');
+      const placeholder = $('#avatarPlaceholder');
+      if (url) {
+        img.src = url;
+        img.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+      } else {
+        img.src = '';
+        img.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+      }
+    }
+
+    // 监听头像更新事件
+    socket.on('avatar-updated', ({ contestantId: cid, avatarUrl }) => {
+      if (cid === contestantId) {
+        setAvatar(avatarUrl);
+      }
+    });
+
+    // 重连后恢复头像
+    socket.on('connect', () => {
+      if (roomCode && contestantId) {
+        socket.emit('rejoin-room', { roomCode, contestantId }, (res) => {
+          if (res.ok) {
+            const me = res.room.contestants.find(c => c.id === contestantId);
+            if (me) {
+              myColor = me.color;
+              if (me.avatar) setAvatar(me.avatar);
+            }
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>
