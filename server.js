@@ -161,7 +161,7 @@ function loadRooms() {
 
 // ======== 配置 ========
 const CONFIG_FILE = path.join(__dirname, 'config.json');
-let config = { adminPassword: 'bc133f0a895e4cfdf51008b3de167a9e', version: 'v0.5' };
+let config = { adminPassword: 'bc133f0a895e4cfdf51008b3de167a9e', version: 'v0.5.1' };
 
 function loadConfig() {
   try {
