@@ -161,7 +161,7 @@ function loadRooms() {
 
 // ======== 配置 ========
 const CONFIG_FILE = path.join(__dirname, 'config.json');
-let config = { adminPassword: 'bc133f0a895e4cfdf51008b3de167a9e', version: 'v0.5.1' };
+let config = { adminPassword: 'bc133f0a895e4cfdf51008b3de167a9e', version: 'v0.5.2' };
 
 function loadConfig() {
   try {
@@ -752,6 +752,19 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ---- 主持人控制大屏二维码显隐 ----
+  socket.on('toggle-qr', ({ roomCode, show }, callback) => {
+    try {
+      const room = getRoom(roomCode);
+      if (!room) return callback?.({ ok: false, error: '房间不存在' });
+      if (socket.id !== room.hostSocketId) return callback?.({ ok: false, error: '非主持人' });
+      io.to(roomCode).emit('qr-visibility', { show });
+      callback?.({ ok: true });
+    } catch (err) {
+      callback?.({ ok: false, error: err.message });
+    }
+  });
+
   // ---- 主持人发布题目 ----
   socket.on('publish-question', ({ roomCode, question, answer, questionId }, callback) => {
     try {
@@ -897,6 +910,34 @@ io.on('connection', (socket) => {
       }
     }
   });
+});
+
+// ======== 局域网 IP 检测（用于二维码） ========
+function getLanIp() {
+  const os = require('os');
+  const ifaces = os.networkInterfaces();
+  let candidates = [];
+  for (const name of Object.keys(ifaces)) {
+    for (const iface of ifaces[name]) {
+      // 跳过内部/回环/虚拟网卡
+      if (iface.family !== 'IPv4' || iface.internal) continue;
+      if (/^(VM|vE|Fl|docker|loopback|bluetooth|ppp|tun)/i.test(name)) continue;
+      if (iface.address.startsWith('169.254') || iface.address.startsWith('198.18')) continue;
+      candidates.push({ name, ip: iface.address });
+    }
+  }
+  // 优先返回 192.168.x.x（最常见的家庭局域网段）
+  const lan = candidates.find(c => c.ip.startsWith('192.168.'));
+  if (lan) return lan.ip;
+  // 其次返回 10.x.x.x
+  const ten = candidates.find(c => c.ip.startsWith('10.'));
+  if (ten) return ten.ip;
+  // 最后返回第一个非内部 IP
+  return candidates.length > 0 ? candidates[0].ip : 'localhost';
+}
+
+app.get('/api/server-info', (req, res) => {
+  res.json({ ip: getLanIp(), port: process.env.PORT || 3000 });
 });
 
 // ======== 启动 ========

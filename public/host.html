@@ -821,6 +821,9 @@
 
       <button class="btn btn-outline" id="nextBtn">⏭️ 下一题</button>
 
+      <div class="section-label">大屏控制</div>
+      <button class="btn btn-outline" id="qrToggleBtn" style="font-size:13px;">📱 显示二维码</button>
+
       <div class="section-label">选手分数</div>
       <div class="contestants-score-list" id="scoreList">
         <div style="color: var(--text-secondary); font-size: 13px; text-align: center;">暂无选手</div>
@@ -1057,6 +1060,17 @@
         if (!res.ok) return showToast(res.error);
         updateQuestionDisplay('', '');
         currentQuestionId = null;
+      });
+    });
+
+    // ======== 大屏二维码控制 ========
+    let qrVisible = false;
+    $('#qrToggleBtn').addEventListener('click', () => {
+      if (!roomCode) return;
+      qrVisible = !qrVisible;
+      socket.emit('toggle-qr', { roomCode, show: qrVisible }, (res) => {
+        if (!res.ok) { qrVisible = !qrVisible; return showToast(res.error); }
+        $('#qrToggleBtn').textContent = qrVisible ? '📱 隐藏二维码' : '📱 显示二维码';
       });
     });
 

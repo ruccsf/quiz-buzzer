@@ -38,8 +38,10 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/socket-client.js"></script>
   <script>
-    // 房间号自动大写
+    // 从 URL 参数预填房间号（扫码进入时）
     const roomCodeInput = $('#roomCode');
+    const urlRoom = new URLSearchParams(location.search).get('room');
+    if (urlRoom) roomCodeInput.value = urlRoom.toUpperCase();
     roomCodeInput.addEventListener('input', () => {
       roomCodeInput.value = roomCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });
