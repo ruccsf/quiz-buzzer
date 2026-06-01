@@ -540,6 +540,7 @@
     socket.on('question-update', ({ question }) => {
       const card = $('#questionCard');
       if (question && question.trim()) {
+        playSound('publish');
         card.innerHTML = '📝 ' + question;
         card.classList.remove('hidden');
       } else {
@@ -561,6 +562,7 @@
         btn.textContent = '🏆 抢到！';
         hint.textContent = '🎉 你抢到了！等待主持人判定...';
         hint.style.color = '#ffd600';
+        playSound('buzz');
         if (navigator.vibrate) navigator.vibrate(50);
       } else {
         btn.className = 'buzz-btn';
@@ -592,6 +594,7 @@
       if (targetId === contestantId) {
         btn.className = correct ? 'buzz-btn correct' : 'buzz-btn wrong';
         btn.textContent = correct ? '✅ 正确!' : '❌ 错误';
+        playSound(correct ? 'correct' : 'wrong');
 
         hint.textContent = correct
           ? `🎉 回答正确！+${delta}分`
@@ -617,6 +620,9 @@
       if (remaining > 0) {
         timerEl.textContent = remaining;
         timerEl.className = remaining <= 3 ? 'timer-badge warning' : 'timer-badge running';
+        playSound(remaining <= 3 ? 'tickWarn' : 'tick');
+      } else {
+        playSound('timesUp');
       }
     });
 

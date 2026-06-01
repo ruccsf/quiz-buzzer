@@ -97,12 +97,20 @@
     .copy-btn:hover { background: rgba(255,255,255,0.15); color: var(--text-primary); }
     .qr-trigger { cursor: pointer; font-size: 18px; margin-left: 6px; opacity: 0.6; vertical-align: middle; transition: opacity 0.2s; }
     .qr-trigger:hover { opacity: 1; }
-    .qr-popup { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 999; animation: fadeIn 0.2s ease; }
+    .qr-popup {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(5, 5, 30, 0.92);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 999; animation: fadeIn 0.2s ease;
+    }
     .qr-popup.hidden { display: none; }
-    .qr-popup .qr-box { background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 16px 64px rgba(0,0,0,0.5); animation: slideUp 0.25s ease; }
-    .qr-popup .qr-box .qr-label { color: #333; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
-    .qr-popup .qr-box .qr-close { display: block; margin-top: 12px; background: none; border: none; color: #666; font-size: 13px; cursor: pointer; }
-    .qr-popup .qr-box .qr-close:hover { color: #000; }
+    .qr-popup .qr-title { font-size: 36px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .qr-popup .qr-sub { font-size: 18px; color: rgba(255,255,255,0.6); margin-bottom: 24px; }
+    .qr-popup .qr-code-box { background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 0 60px rgba(74,158,255,0.3); margin-bottom: 20px; }
+    .qr-popup .qr-tip { font-size: 20px; color: var(--accent-blue); font-weight: 600; }
+    .qr-popup .qr-close { margin-top: 12px; background: none; border: none; color: rgba(255,255,255,0.5); font-size: 14px; cursor: pointer; }
+    .qr-popup .qr-close:hover { color: #fff; }
 
     /* ---- 大屏主持人控制的二维码 ---- */
     .qr-overlay {
@@ -530,12 +538,11 @@
 
   <!-- 二维码弹窗（手动点击触发） -->
   <div class="qr-popup hidden" id="qrPopup">
-    <div class="qr-box">
-      <div class="qr-label">📱 选手扫码加入</div>
-      <div id="popupQRCode"></div>
-      <div style="color:#666;font-size:12px;margin-top:8px;" id="qrUrlDisplay"></div>
-      <button class="qr-close" onclick="closeQR()">关闭</button>
-    </div>
+    <div class="qr-title">📱 扫码加入</div>
+    <div class="qr-sub">打开手机相机扫描二维码</div>
+    <div class="qr-code-box" id="popupQRCode"></div>
+    <div class="qr-tip" id="qrUrlDisplay"></div>
+    <button class="qr-close" onclick="closeQR()">关闭</button>
   </div>
 
   <!-- 主持人控制的全屏二维码 -->
@@ -576,9 +583,9 @@
       const container = $('#popupQRCode');
       container.innerHTML = '';
       if (typeof QRCode !== 'undefined') {
-        new QRCode(container, { text: getQRUrl(roomCode), width: 180, height: 180, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
+        new QRCode(container, { text: getQRUrl(roomCode), width: 260, height: 260, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
       }
-      $('#qrUrlDisplay').textContent = getQRUrl(roomCode);
+      $('#qrUrlDisplay').textContent = '房间号: ' + roomCode;
       popup.classList.remove('hidden');
     }
 
@@ -648,6 +655,7 @@
     socket.on('question-update', ({ question }) => {
       const el = $('#screenQuestion');
       if (question && question.trim()) {
+        playSound('publish');
         el.innerHTML = '📝 ' + question;
         el.classList.remove('hidden');
       } else {
@@ -673,11 +681,13 @@
 
     socket.on('buzz-result', ({ winnerId, winnerName }) => {
       highlightRow(winnerId, 'buzzed');
+      playSound('buzz');
       addEventLog('🏆 ' + winnerName + ' 抢答成功！', true);
     });
 
     socket.on('judge-result', ({ correct, contestantId, delta, answer }) => {
       highlightRow(contestantId, correct ? 'correct' : 'wrong');
+      playSound(correct ? 'correct' : 'wrong');
       setTimeout(() => {
         $$('.lb-row').forEach(c => { c.classList.remove('correct', 'wrong'); });
       }, 2500);
@@ -744,9 +754,11 @@
 
     socket.on('timer-tick', ({ remaining }) => {
       updateTimer(remaining);
+      if (remaining > 0) playSound(remaining <= 3 ? 'tickWarn' : 'tick');
     });
 
     socket.on('contestant-joined', ({ contestant }) => {
+      playSound('join');
       refreshRoom();
       addEventLog('🎉 ' + contestant.name + ' 加入比赛');
     });
@@ -756,8 +768,8 @@
     });
 
     socket.on('contestant-rejoined', ({ name }) => {
+      playSound('join');
       refreshRoom();
-      addEventLog('🔄 ' + name + ' 重新接入');
     });
 
     socket.on('contestant-status', ({ contestantId, connected }) => {

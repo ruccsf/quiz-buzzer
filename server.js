@@ -45,6 +45,7 @@ app.post('/api/upload-avatar', (req, res) => {
         const contestant = room.contestants.find(c => c.id === contestantId);
         if (contestant) {
           contestant.avatar = avatarUrl;
+          saveRooms(); // 持久化头像URL
         }
       }
       io.to(roomCode).emit('avatar-updated', { contestantId, avatarUrl });
@@ -161,7 +162,7 @@ function loadRooms() {
 
 // ======== 配置 ========
 const CONFIG_FILE = path.join(__dirname, 'config.json');
-let config = { adminPassword: 'bc133f0a895e4cfdf51008b3de167a9e', version: 'v0.5.2' };
+let config = { adminPassword: 'bc133f0a895e4cfdf51008b3de167a9e', version: 'v0.5.3' };
 
 function loadConfig() {
   try {
@@ -330,6 +331,10 @@ io.on('connection', (socket) => {
       const room = getRoom(roomCode);
       if (!room) return callback?.({ ok: false, error: '房间不存在' });
       room.hostSocketId = socket.id;
+      // 先退出之前的房间（防止同时接收多个房间的事件）
+      if (currentRoom && currentRoom !== roomCode) {
+        socket.leave(currentRoom);
+      }
       socket.join(roomCode);
       currentRoom = roomCode;
       callback?.({ ok: true });
@@ -951,5 +956,12 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   本地访问: http://localhost:${PORT}`);
   console.log(`   局域网访问: http://<本机IP>:${PORT}`);
   console.log(`   数据文件: rooms-data.json`);
+
+  // 自动打开首页
+  const url = `http://localhost:${PORT}`;
+  const platform = process.platform;
+  const cmd = platform === 'win32' ? `start "" ${url}` : platform === 'darwin' ? `open "${url}"` : `xdg-open "${url}"`;
+  require('child_process').exec(cmd, () => {});
+
   console.log(`   按 Ctrl+C 停止`);
 });

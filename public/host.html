@@ -26,13 +26,13 @@
       width: 100%;
       height: 100vh;
       display: grid;
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: 1fr 350px;
       gap: 0;
     }
 
     /* ---- 大屏展示区 ---- */
     .display-area {
-      padding: 40px;
+      padding: 24px 20px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -329,6 +329,10 @@
       font-size: 28px;
       font-weight: 700;
       margin-bottom: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
     }
 
     .contestant-card .score {
@@ -427,7 +431,7 @@
     /* ---- 控制面板 ---- */
     .control-panel {
       background: var(--bg-secondary);
-      padding: 30px 24px;
+      padding: 20px 16px;
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -516,9 +520,13 @@
     }
 
     .score-row .name {
-      flex: 1;
+      flex: 1 1 auto;
       font-weight: 600;
       font-size: 14px;
+      min-width: 50px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .score-row .pts {
@@ -829,11 +837,6 @@
         <div style="color: var(--text-secondary); font-size: 13px; text-align: center;">暂无选手</div>
       </div>
 
-      <div class="section-label">🏆 当前排名</div>
-      <div class="ranking-list" id="rankingList">
-        <div class="ranking-empty">暂无选手</div>
-      </div>
-
       <div class="section-label">抢答记录</div>
       <div class="history-log" id="historyLog">
         <div class="entry" style="color: var(--text-secondary);">暂无记录</div>
@@ -1079,6 +1082,7 @@
       // 保持当前答案显示不变
       const curAnswer = $('#answerPreview').classList.contains('hidden') ? '' : $('#answerPreview').textContent.replace('💡 正确答案：', '');
       updateQuestionDisplay(question, curAnswer);
+      if (question && question.trim()) playSound('publish');
     });
 
     // 从 sessionStorage 读取题库选用的题目（由 questions.html 的"选用"写入）
@@ -1272,6 +1276,7 @@
     // ======== Socket 事件处理 ========
 
     socket.on('contestant-joined', ({ contestant }) => {
+      playSound('join');
       renderContestants();
       renderScoreList();
       renderRanking();
@@ -1285,6 +1290,7 @@
     });
 
     socket.on('contestant-rejoined', ({ name }) => {
+      playSound('join');
       renderContestants();
       renderScoreList();
       renderRanking();
@@ -1317,11 +1323,13 @@
 
     socket.on('buzz-result', ({ winnerId, winnerName }) => {
       highlightContestant(winnerId, 'buzzed');
+      playSound('buzz');
       addLogEntry(`🏆 ${winnerName} 抢答成功`);
     });
 
     socket.on('judge-result', ({ correct, contestantId, delta, answer }) => {
       highlightContestant(contestantId, correct ? 'correct' : 'wrong');
+      playSound(correct ? 'correct' : 'wrong');
       let log = `${correct ? '✅ 正确 +' : '❌ 错误 '}${delta > 0 ? '+' : ''}${delta}`;
       if (answer) log += `  💡 ${answer}`;
       addLogEntry(log);
@@ -1485,10 +1493,11 @@
 
     function renderRanking() {
       if (!roomCode) return;
+      const list = $('#rankingList');
+      if (!list) return;
       socket.emit('get-room', { roomCode }, (res) => {
         if (!res.ok) return;
         const ranked = [...res.room.contestants].sort((a, b) => b.score - a.score);
-        const list = $('#rankingList');
         if (!ranked || ranked.length === 0) {
           list.innerHTML = '<div class="ranking-empty">暂无选手</div>';
           return;

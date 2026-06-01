@@ -60,6 +60,88 @@ function fallbackCopy(text, btn) {
   document.body.removeChild(ta);
 }
 
+// ======== 音效系统（Web Audio API 合成，零依赖） ========
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return audioCtx;
+}
+// 页面加载时立即创建 AudioContext（避免首次 playSound 时延迟）
+getAudioCtx();
+// 在任意用户交互时恢复（浏览器要求 AudioContext 必须在手势内激活）
+function resumeAudio() {
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+}
+document.addEventListener('click', resumeAudio);
+document.addEventListener('touchstart', resumeAudio);
+document.addEventListener('keydown', resumeAudio);
+
+function playSound(type) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+
+  function doPlay() {
+    try {
+      switch (type) {
+        case 'buzz':
+          playTone(ctx, 880, 0.08, 'triangle', 0.25);
+          setTimeout(() => playTone(ctx, 1175, 0.12, 'triangle', 0.3), 60);
+          break;
+        case 'correct':
+          playTone(ctx, 523, 0.1, 'triangle', 0.2);
+          setTimeout(() => playTone(ctx, 659, 0.1, 'triangle', 0.2), 80);
+          setTimeout(() => playTone(ctx, 784, 0.1, 'triangle', 0.2), 160);
+          setTimeout(() => playTone(ctx, 1047, 0.2, 'triangle', 0.25), 240);
+          break;
+        case 'wrong':
+          playTone(ctx, 440, 0.15, 'sawtooth', 0.15);
+          setTimeout(() => playTone(ctx, 330, 0.2, 'sawtooth', 0.15), 120);
+          break;
+        case 'tick':
+          playTone(ctx, 800, 0.03, 'square', 0.06);
+          break;
+        case 'tickWarn':
+          playTone(ctx, 1000, 0.04, 'square', 0.08);
+          break;
+        case 'timesUp':
+          playTone(ctx, 330, 0.2, 'square', 0.12);
+          setTimeout(() => playTone(ctx, 220, 0.3, 'square', 0.12), 180);
+          break;
+        case 'join':
+          playTone(ctx, 523, 0.15, 'triangle', 0.25);
+          setTimeout(() => playTone(ctx, 659, 0.15, 'triangle', 0.25), 100);
+          setTimeout(() => playTone(ctx, 784, 0.2, 'triangle', 0.3), 200);
+          break;
+        case 'publish':
+          playTone(ctx, 440, 0.25, 'triangle', 0.8);
+          setTimeout(() => playTone(ctx, 554, 0.25, 'triangle', 0.8), 200);
+          setTimeout(() => playTone(ctx, 659, 0.35, 'triangle', 0.8), 400);
+          break;
+      }
+    } catch(e) {}
+  }
+
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  doPlay();
+}
+
+function playTone(ctx, freq, duration, type, volume) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, ctx.currentTime);
+  gain.gain.setValueAtTime(volume, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + duration);
+}
+
 // 从剪贴板粘贴房间号到输入框
 function pasteText(inputId, btn) {
   const input = document.getElementById(inputId);
