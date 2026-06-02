@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+  {{LOGO}}
+  <div id="roomBadgeTop" style="position:absolute;top:12px;right:20px;font-size:14px;color:var(--text-secondary);background:var(--bg-card);padding:6px 14px;border-radius:8px;font-weight:600;letter-spacing:2px;display:none;">----</div>
   <div class="container">
     <div style="text-align:center; margin-bottom: 40px; animation: fadeIn 0.6s ease;">
       <div style="font-size: 48px; line-height: 1; margin-bottom: 8px;">📱</div>
@@ -33,6 +35,7 @@
     <p style="color: var(--text-secondary); font-size: 13px; margin-top: 24px;">
       🏆 主持人请 <a href="/host" style="color: var(--accent-blue);">点击此处创建房间</a>
     </p>
+    <a href="/" style="position:absolute;bottom:20px;right:20px;color:var(--text-secondary);font-size:13px;text-decoration:none;background:var(--bg-card);padding:6px 12px;border-radius:8px;">← 返回</a>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -41,7 +44,12 @@
     // 从 URL 参数预填房间号（扫码进入时）
     const roomCodeInput = $('#roomCode');
     const urlRoom = new URLSearchParams(location.search).get('room');
-    if (urlRoom) roomCodeInput.value = urlRoom.toUpperCase();
+    if (urlRoom) {
+      roomCodeInput.value = urlRoom.toUpperCase();
+      const badge = $('#roomBadgeTop');
+      badge.textContent = 'Room: ' + urlRoom.toUpperCase();
+      badge.style.display = '';
+    }
     roomCodeInput.addEventListener('input', () => {
       roomCodeInput.value = roomCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });

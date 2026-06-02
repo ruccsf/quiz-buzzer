@@ -53,11 +53,12 @@
     /* ---- 顶栏 ---- */
     .screen-header {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
       flex-shrink: 0;
       padding-bottom: 20px;
       border-bottom: 1px solid rgba(255,255,255,0.06);
+      position: relative;
     }
     .screen-header .game-title {
       font-size: 32px;
@@ -68,6 +69,8 @@
       background-clip: text;
     }
     .screen-header .meta-info {
+      position: absolute;
+      right: 0;
       font-size: 20px;
       color: var(--text-secondary);
       font-weight: 600;
@@ -505,6 +508,7 @@
   </div>
 
   <!-- ===== Phase 2: 大屏展示 ===== -->
+  {{LOGO}}
   <div class="screen-display hidden" id="displayView">
     <div class="screen-header">
       <div class="game-title" id="gameTitle">🏆 知识竞赛</div>

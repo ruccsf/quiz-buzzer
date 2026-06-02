@@ -41,9 +41,10 @@
 
     .display-header {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
       margin-bottom: 40px;
+      position: relative;
     }
 
     .display-header h1 {
@@ -54,6 +55,8 @@
     }
 
     .display-header .room-code {
+      position: absolute;
+      right: 0;
       font-size: 20px;
       color: var(--text-secondary);
       background: var(--bg-card);
@@ -732,6 +735,7 @@
   </style>
 </head>
 <body>
+  {{LOGO}}
   <!-- ===== 创建房间视图 ===== -->
   <div class="create-view" id="createView">
     <div style="text-align:center; margin-bottom: 30px; animation: fadeIn 0.6s ease;">
@@ -746,6 +750,12 @@
       </div>
       <button class="btn btn-primary" id="createRoomBtn">🎯 创建房间</button>
     </div>
+
+    <!-- Logo上传（创建房间视图） -->
+    <div style="text-align:center; margin-top: 16px; font-size:13px;">
+      <span id="logoUploadLink" onclick="document.getElementById('logoFileInput').click()" style="color:var(--text-secondary);cursor:pointer;text-decoration:none;border:1px dashed rgba(255,255,255,0.1);border-radius:8px;padding:6px 16px;">🖼 上传企业Logo</span>
+    </div>
+    <input type="file" id="logoFileInput" accept="image/png,image/jpeg" style="display:none">
 
     <!-- 已有房间列表（重启后可重新接入） -->
     <div class="card" style="animation: slideUp 0.55s ease; margin-top: 16px; padding: 20px 24px; display:none;" id="existingRoomsCard">
@@ -857,6 +867,42 @@
     let selectedTimer = 10;
     let roomCode = null;
     let logEntries = [];
+
+    // ---- Logo 上传 ----
+    $('#logoFileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          // Logo 保持宽高比，最大宽度 400px
+          let w = img.width, h = img.height;
+          if (w > 400) { h = Math.round(h * 400 / w); w = 400; }
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/png', 0.8);
+          fetch('/api/upload-logo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: dataUrl })
+          }).then(r => r.json()).then(res => {
+            if (res.ok) {
+              showToast('✅ Logo已更新，刷新页面查看', 'success');
+              // 立即更新页面上已有的logo
+              const logos = document.querySelectorAll('.brand-logo');
+              logos.forEach(l => { l.src = res.logoUrl; l.style.display = ''; });
+            } else {
+              showToast(res.error || '上传失败');
+            }
+          }).catch(() => showToast('上传失败，请重试'));
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
 
     // ---- 创建房间 ----
     $('#createRoomBtn').addEventListener('click', () => {

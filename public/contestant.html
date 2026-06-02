@@ -405,13 +405,12 @@
   </style>
 </head>
 <body>
+  {{LOGO}}
+  <div id="roomBadgeQR" style="position:absolute;top:60px;right:20px;font-size:14px;color:var(--text-secondary);background:var(--bg-card);padding:6px 14px;border-radius:8px;font-weight:600;letter-spacing:2px;z-index:50;">----</div>
   <div class="contestant-view">
     <!-- 头部 -->
     <div class="contestant-header">
-      <div class="left-group">
-        <a class="back-link" href="/player">← 返回</a>
-        <div class="room-badge" id="roomBadge" style="display:flex;align-items:center;gap:6px;">—— <button class="copy-btn" onclick="var t=document.getElementById('roomBadge').textContent.replace('房间: ','').replace('📋','').trim();copyText(t,this)" style="background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:1px 6px;">📋</button></div>
-      </div>
+      <div class="left-group"></div>
       <div class="contestant-name-display" id="nameDisplay">——</div>
     </div>
 
@@ -473,7 +472,7 @@
       setTimeout(() => window.location.href = '/', 1500);
     }
 
-    $('#roomBadge').innerHTML = '房间: ' + roomCode + '<button class="copy-btn" onclick="copyText(\'' + roomCode + '\',this)" style="background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:1px 6px;">📋</button>';
+    $('#roomBadgeQR').textContent = '房间: ' + roomCode;
 
     // ---- 重新连接房间 ----
     socket.emit('rejoin-room', { roomCode, contestantId }, (res) => {
@@ -868,5 +867,6 @@
       }
     });
   </script>
+  <a href="/player" style="position:absolute;bottom:20px;right:20px;color:var(--text-secondary);font-size:13px;text-decoration:none;background:var(--bg-card);padding:6px 12px;border-radius:8px;z-index:50;">← 返回</a>
 </body>
 </html>

@@ -58,6 +58,33 @@ app.post('/api/upload-avatar', (req, res) => {
   }
 });
 
+// POST /api/upload-logo — 上传企业Logo
+const LOGO_FILE = path.join(__dirname, 'public', 'images', 'logo.png');
+app.post('/api/upload-logo', (req, res) => {
+  try {
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ ok: false, error: '参数不足' });
+    const matches = image.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,(.+)$/);
+    if (!matches) return res.status(400).json({ ok: false, error: '图片格式不支持' });
+    const buffer = Buffer.from(matches[2], 'base64');
+    if (buffer.length > 512000) return res.status(413).json({ ok: false, error: '图片太大' });
+    // 确保目录存在
+    const logoDir = path.join(__dirname, 'public', 'images');
+    if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
+    fs.writeFileSync(LOGO_FILE, buffer);
+    res.json({ ok: true, logoUrl: '/images/logo.png?t=' + Date.now() });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+function getLogoHtml() {
+  if (fs.existsSync(LOGO_FILE)) {
+    return '<img src="/images/logo.png?t=' + Date.now() + '" class="brand-logo" alt="logo">';
+  }
+  return '';
+}
+
 // 清理选手头像文件
 function deleteAvatarFile(contestantId) {
   if (!contestantId) return;
@@ -74,7 +101,9 @@ const htmlDir = path.join(__dirname, 'public');
 
 function sendVersionedHtml(req, res, filePath) {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  const html = fs.readFileSync(filePath, 'utf8').replace('{{VERSION}}', config.version || 'v0.5');
+  const logo = getLogoHtml();
+  let html = fs.readFileSync(filePath, 'utf8');
+  html = html.replace('{{VERSION}}', config.version || 'v0.5').replace('{{LOGO}}', logo);
   res.send(html);
 }
 
@@ -162,7 +191,7 @@ function loadRooms() {
 
 // ======== 配置 ========
 const CONFIG_FILE = path.join(__dirname, 'config.json');
-let config = { adminPassword: 'bc133f0a895e4cfdf51008b3de167a9e', version: 'v0.5.3' };
+let config = { adminPassword: 'bc133f0a895e4cfdf51008b3de167a9e', version: 'v0.6.0' };
 
 function loadConfig() {
   try {

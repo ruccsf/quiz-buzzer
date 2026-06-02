@@ -1,6 +1,11 @@
 @echo off
-chcp 65001 > nul
-echo 🛑 正在停止抢答系统...
-taskkill /f /im node.exe 2>nul
-echo ✅ 已停止
+title Stop Quiz Buzzer
+echo Stopping Quiz Buzzer...
+taskkill /f /im node.exe >nul 2>nul
+if errorlevel 1 (
+  echo No running node process found.
+) else (
+  echo Server stopped.
+)
+echo.
 pause
